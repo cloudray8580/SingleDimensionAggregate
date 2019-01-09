@@ -46,3 +46,21 @@ void TestJoin() {
 	mat temp = join_cols(first_row, second_row);
 	temp.print();
 }
+
+void TestPara() {
+	mat dataset;
+	bool loaded = mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/SingleDimQueryTest3.csv", dataset);
+	rowvec data = dataset.row(0);
+	rowvec label = dataset.row(1);
+	LinearRegression lr(data, label);
+	arma::vec paras = lr.Parameters();
+	paras.print();
+	cout << paras[0] << " " << paras[1] << endl;
+
+	rowvec result;
+	lr.Predict(data, result);
+	result.print();
+
+	double a = paras[1], b = paras[0];
+	cout << a << " " << b << endl;
+}

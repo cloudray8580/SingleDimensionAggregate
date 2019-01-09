@@ -106,7 +106,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>D:\boost_1_66_0;D:\mlpack3.0.4\armadillo-9.200.6\include;D:\mlpack3.0.4\mlpack-3.0.4\build\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>D:\boost_1_66_0;D:\mlpack3.0.4\armadillo-9.200.6\include;D:\mlpack3.0.4\mlpack-3.0.4\build\include;D:\stxbtree\stx-btree-0.9\include;D:\VSProject\STXBtreeTest\STXBtreeTest\packages\boost.1.68.0.0\lib\native\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

@@ -8,6 +8,7 @@ using namespace std;
 
 class StageModel {
  public:
+	//todo: handle untrained model!
 	StageModel(const arma::mat& dataset, const arma::rowvec& labels, vector<int> &architecture) {
 		int TOTAL_SIZE = dataset.size();
 		this->TOTAL_SIZE = TOTAL_SIZE;
@@ -40,7 +41,8 @@ class StageModel {
 				arma::rowvec predictions;
 				lr.Predict(dataset, predictions);
 				// distribute training set
-				DistributeTrainingSetOptimized(predictions, stage_dataset[i][0], stage_label[i][0], i + 1, architecture[i + 1], TOTAL_SIZE);
+				if (i != architecture.size() - 1)
+					DistributeTrainingSetOptimized(predictions, stage_dataset[i][0], stage_label[i][0], i + 1, architecture[i + 1], TOTAL_SIZE);
 			}
 			else {
 				for (int j = 0; j < architecture[i]; j++) {
@@ -77,6 +79,10 @@ class StageModel {
 		query = join_cols(queryset, order.imbue([&]() {return count++; })); // first row on top, second row on the bottom
 
 		stage_queryset[0][0] = query;
+		
+		/*cout << "query:" << endl;
+		rowvec temp = query.row(0);
+		cout << temp(0) << " " << temp(1) << endl;*/
 	}
 
 	// wait for test
@@ -124,24 +130,117 @@ class StageModel {
 		//predictions = predictions_with_order.cols(index);
 		predictions = predictions_with_order.row(0);
 		predictions = predictions.cols(index);
+
+	/*	for (int i = 0; i < stage_queryset.size(); i++) {
+			for (int j = 0; j < stage_queryset[i].size(); j++) {
+				if (stage_queryset[i][j].size() == 0)
+					continue;
+				rowvec order = stage_queryset[i][j].row(1);
+				uvec index = find(order == 1);
+				cout << i << " " << j << endl;
+				index.print();
+			}
+		}*/
 	}
 
 	// this method is too slow!!!
-	void PredictNaive(arma::mat& queryset, arma::rowvec& predictions) {
+	//void PredictNaive(arma::mat& queryset, arma::rowvec& predictions) {
 
-		arma::rowvec temp;
-		for (int item = 0; item < queryset.size(); item++) {
-			int index = 0;
-			for (int i = 0; i < stage_model.size(); i++) {
-				stage_model[i][index].Predict(queryset.col(i), temp);
-				if (i < stage_model.size() - 1) {
-					index = temp[0] / TOTAL_SIZE * stage_model[i + 1].size();
-					index < 0 ? 0 : index;
-					index >= stage_model[i + 1].size() - 1 ? stage_model[i + 1].size() - 1 : index;
-				}
-				predictions.insert_cols(i, temp[0]);
-			}
+	//	arma::rowvec temp;
+	//	for (int item = 0; item < queryset.size(); item++) {
+	//		int index = 0;
+	//		for (int i = 0; i < stage_model.size(); i++) {
+	//			stage_model[i][index].Predict(queryset.col(i), temp);
+	//			if (i < stage_model.size() - 1) {
+	//				index = temp[0] / TOTAL_SIZE * stage_model[i + 1].size();
+	//				index < 0 ? 0 : index;
+	//				index >= stage_model[i + 1].size() - 1 ? stage_model[i + 1].size() - 1 : index;
+	//			}
+	//			predictions.insert_cols(i, temp[0]);
+	//		}
+	//	}
+	//}
+
+	static void RowvecToVector(arma::mat& queryset, vector<double> &query_v) {
+		query_v.clear();
+		for (int i = 0; i < queryset.n_cols; i++) {
+			query_v.push_back(queryset[i]);
 		}
+	}
+
+	static void VectorToRowvec(arma::mat& rv, vector<double> &v) {
+		rv.clear();
+		rv.set_size(v.size());
+		int count = 0;
+		rv.imbue([&]() { return v[count++]; });
+	}
+
+	void PredictVector(vector<double> &queryset, vector<double> &results) {
+		double result;
+		results.clear();
+		double a, b;
+		int index = 0;
+		for (int k = 0; k < queryset.size(); k++) {
+			index = 0;
+			for (int i = 0; i < stage_model_parameters.size(); i++) {
+				a = stage_model_parameters[i][index].first;
+				b = stage_model_parameters[i][index].second;
+				result = a * queryset[k] + b;
+				if (i < stage_model_parameters.size() - 1) {
+					index = (result / TOTAL_SIZE * stage_model_parameters[i + 1].size());
+					//index *= stage_model_parameters[i + 1].size();
+					//index = int(index);
+					if (index < 0) {
+						index = 0;
+					}
+					else if (index > stage_model_parameters[i + 1].size() - 1) {
+						index = stage_model_parameters[i + 1].size() - 1;
+					}
+				}
+			}
+			results.push_back(result);
+		}
+	}
+
+	static void PredictNaiveSingleLR(const arma::mat& dataset, const arma::rowvec& labels, arma::mat& queryset, arma::rowvec& predictions) {
+		LinearRegression lr(dataset, labels);
+		for (int i = 0; i < queryset.n_cols; i++) {
+			rowvec temp;
+			lr.Predict(queryset.col(i), temp);
+			//predictions.insert_cols(i, temp); // this take about 400ns for this query set
+		}
+	}
+
+	static void PredictNaiveSingleLR2(const arma::mat& dataset, const arma::rowvec& labels, arma::mat& queryset, arma::rowvec& predictions) {
+		predictions.clear();
+		predictions.set_size(queryset.n_cols);
+		LinearRegression lr(dataset, labels);
+		lr.Predict(queryset, predictions);
+		//cout << queryset[0] << " " << queryset[1] << endl;
+		//cout << predictions[0] << " " << predictions[1] << endl;
+		arma::vec paras = lr.Parameters();
+		double a = paras[1]; // the first one is b
+		double b = paras[0]; // the second one is a
+
+		//cout << a * queryset[0] + b << " " << a * queryset[1] + b << endl;
+
+		vector<double> query_v;
+		for (int i = 0; i < queryset.n_cols; i++) {
+			query_v.push_back(queryset[i]);
+		}
+		auto t0 = chrono::steady_clock::now();
+		double result;
+		vector<double> results;
+		for (int i = 0; i < query_v.size(); i++) {
+			result = a * query_v[i] + b;
+			results.push_back(result);
+		}
+		auto t1 = chrono::steady_clock::now();
+		cout << "Total Time in chrono: " << chrono::duration_cast<chrono::nanoseconds>(t1 - t0).count() << " ns" << endl;
+		cout << "Average Time in chrono: " << chrono::duration_cast<chrono::nanoseconds>(t1 - t0).count() / (queryset.size() / queryset.n_rows) << " ns" << endl;
+		int count = 0;
+		predictions.imbue([&]() { return results[count++]; });
+		//cout << predictions[0] << " " << predictions[1] << endl;
 	}
 
 	void DistributeTrainingSet(arma::rowvec &predictions, arma::mat& dataset, arma::rowvec& labels, int target_layer, int target_layer_model_count, int TOTAL_SIZE) {
@@ -181,12 +280,13 @@ class StageModel {
 
 		for (int j = 0; j < stage_dataset[target_layer].size(); j++) {
 			uvec indices = find(predictions == j);
-			cout << "distributing...target_layer=" << target_layer << " model=" << j << endl;
+			//cout << "distributing...target_layer=" << target_layer << " model=" << j << endl;
 			stage_dataset[target_layer][j].insert_cols(stage_dataset[target_layer][j].n_cols, dataset.cols(indices)); // using index for dataset may be a bug
 			stage_label[target_layer][j].insert_cols(stage_label[target_layer][j].n_cols, labels.cols(indices));
 		}
 	}
 
+	// this is not % !!! 
 	double MeasureAccuracy(arma::rowvec predicted_range, string filename_result="C:/Users/Cloud/Desktop/LearnIndex/data/SortedSingleDimResults.csv") {
 		mat real_result;
 		bool loaded3 = mlpack::data::Load(filename_result, real_result);
@@ -200,10 +300,27 @@ class StageModel {
 		return average_relative_error;
 	}
 
+	void DumpParameters() {
+		stage_model_parameters.clear();
+		vector<pair<double, double>> layer;
+		for (int i = 0; i < stage_model.size(); i++) {
+			layer.clear();
+			for (int j = 0; j < stage_model[i].size(); j++) {
+				arma::vec paras = stage_model[i][j].Parameters();
+				//cout << i << " " << j << ": " << endl;
+				paras.print();
+				layer.push_back(pair<double, double>(paras[1], paras[0])); // the first one is b, the second one of para is a!
+			}
+			stage_model_parameters.push_back(layer);
+		}
+	}
+
 	int TOTAL_SIZE = 1;
 	vector<vector<LinearRegression>> stage_model;
 	vector<vector<arma::mat>> stage_dataset;
 	vector<vector<arma::rowvec>> stage_label;
+
+	vector<vector<pair<double, double>>> stage_model_parameters; // first:a, second:b
 
 	vector<vector<arma::mat>> stage_queryset;
 };
