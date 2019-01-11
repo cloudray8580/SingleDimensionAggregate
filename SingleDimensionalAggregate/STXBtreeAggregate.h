@@ -258,26 +258,26 @@ void SingleLookUpTest2(string filename_query = "C:/Users/Cloud/Desktop/LearnInde
 	for (int i = 0; i < queryset.size(); i++) {
 		//iter = btree.lower_bound(queryset[i].first);
 		//iter = btree.upper_bound(queryset[i].first);
-	/*	iter = btree.find(queryset[i].first);
-		if (iter == btree.end()) {
-			continue;
-		}
-		resultset.push_back(*iter);*/
-		
-		int count;
-		stx::btree<double, vector<double>>::iterator iter_low, iter_up;
-		iter_low = btree.lower_bound(queryset[i].first); // include the key
-		iter_up = btree.upper_bound(queryset[i].second); // not include the key
-		if (iter_low != btree.end() && iter_up != btree.end()) {
-			count = iter_up->second[2] - iter_low->second[2];
-		}
-		else if (iter_low != btree.end()) {
-			count = btree.size() - iter_low->second[2];
-		}
-		else {
-			count = 0;
-		}
-		results.push_back(count);
+		iter = btree.find(queryset[i].first);
+		//if (iter == btree.end()) {
+		//	continue;
+		//}
+		//resultset.push_back(*iter);
+		//
+		//int count;
+		//stx::btree<double, vector<double>>::iterator iter_low, iter_up;
+		//iter_low = btree.lower_bound(queryset[i].first); // include the key
+		//iter_up = btree.upper_bound(queryset[i].second); // not include the key
+		//if (iter_low != btree.end() && iter_up != btree.end()) {
+		//	count = iter_up->second[2] - iter_low->second[2];
+		//}
+		//else if (iter_low != btree.end()) {
+		//	count = btree.size() - iter_low->second[2];
+		//}
+		//else {
+		//	count = 0;
+		//}
+		//results.push_back(count);
 	}
 	auto t1 = chrono::steady_clock::now();
 	cout << "Total Time in chrono: " << chrono::duration_cast<chrono::nanoseconds>(t1 - t0).count() << " ns" << endl;

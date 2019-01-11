@@ -163,6 +163,7 @@ xcopy /y "D:\mlpack3.0.4\mlpack-3.0.4\packages\OpenBLAS.0.2.14.1\lib\native\bin\
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="AggregateQuery.h" />
     <ClInclude Include="LearnIndexAggregate.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="StageModel.h" />

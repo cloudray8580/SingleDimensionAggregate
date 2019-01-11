@@ -2,6 +2,8 @@
 #include "mlpack/core.hpp"
 #include <mlpack/methods/linear_regression/linear_regression.hpp>
 #include <vector>
+#include <stx/btree.h> 
+#include <stx/btree_map.h>
 
 using namespace mlpack::regression;
 using namespace std;
@@ -9,8 +11,18 @@ using namespace std;
 class StageModel {
  public:
 	//todo: handle untrained model!
-	StageModel(const arma::mat& dataset, const arma::rowvec& labels, vector<int> &architecture) {
-		int TOTAL_SIZE = dataset.size();
+	StageModel(const arma::mat& dataset, const arma::rowvec& labels, vector<int> &architecture, int type = 0) {
+		int TOTAL_SIZE;
+		switch (type) {
+		case 0: // COUNT
+			TOTAL_SIZE = dataset.size();
+			break;
+		case 1: // SUM
+			TOTAL_SIZE = labels[labels.n_cols - 1];
+			break;
+		default:
+			break;
+		}
 		this->TOTAL_SIZE = TOTAL_SIZE;
 
 		// initialize stage_dataset and stage_label
@@ -202,6 +214,104 @@ class StageModel {
 		}
 	}
 
+	void PredictVectorWithBucketAssigner(vector<double> &queryset, vector<double> &results) {
+		double result;
+		results.clear();
+		double a, b, a_, b_;
+		arma::vec paras = bucket_lr.Parameters();
+		a_ = paras[1];
+		b_ = paras[0];
+		int index = 0;
+		int height = stage_model_parameters.size() - 1;
+		int count = stage_model_parameters[height].size();
+		for (int k = 0; k < queryset.size(); k++) {
+			index = a_ * queryset[k] + b_;
+			if (index < 0) {
+				index = 0;
+			}
+			else if (index > count - 1) {
+				index = count - 1;
+			}
+			a = stage_model_parameters[height][index].first;
+			b = stage_model_parameters[height][index].second;
+			result = a * queryset[k] + b;
+			results.push_back(result);
+		}
+	}
+
+	void PredictVectorWithBucketMap(vector<double> &queryset, vector<double> &results) {
+		double result;
+		results.clear();
+		double a, b, a_, b_;
+		arma::vec paras = bucket_lr.Parameters();
+		a_ = paras[1];
+		b_ = paras[0];
+		int index = 0;
+		int height = stage_model_parameters.size() - 1;
+		int count = stage_model_parameters[height].size();
+		for (int k = 0; k < queryset.size(); k++) {
+			index = bucket_map[queryset[k]];
+			/*if (index < 0) {
+				index = 0;
+			}
+			else if (index > count - 1) {
+				index = count - 1;
+			}*/
+			a = stage_model_parameters[height][index].first;
+			b = stage_model_parameters[height][index].second;
+			result = a * queryset[k] + b;
+			results.push_back(result);
+		}
+	}
+
+	void RecordBucket(vector<double> &dataset, vector<int> &results, string filename="C:/Users/Cloud/Desktop/LearnIndex/data/BucketRecord.csv") {
+		double result;
+		results.clear();
+		double a, b;
+		int index = 0;
+		for (int k = 0; k < dataset.size(); k++) {
+			index = 0;
+			for (int i = 0; i < stage_model_parameters.size(); i++) {
+				a = stage_model_parameters[i][index].first;
+				b = stage_model_parameters[i][index].second;
+				result = a * dataset[k] + b;
+				if (i < stage_model_parameters.size() - 1) {
+					index = (result / TOTAL_SIZE * stage_model_parameters[i + 1].size());
+					if (index < 0) {
+						index = 0;
+					}
+					else if (index > stage_model_parameters[i + 1].size() - 1) {
+						index = stage_model_parameters[i + 1].size() - 1;
+					}
+				}
+			}
+			results.push_back(index);
+			/*if (k % 1000 == 0) {
+				cout << "current load: " << k << endl;
+			}*/
+		}
+		ofstream outfile;
+		outfile.open(filename);
+		for (int i = 0; i < dataset.size(); i++) {
+			outfile << dataset[i] << "," << results[i] << endl;
+		}
+		outfile.close();
+	}
+
+	void TrainBucketAssigner(string filename) {
+		mat dataset;
+		bool loaded = mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/BucketRecord.csv", dataset);
+		rowvec trainingset = dataset.row(0);
+		rowvec labels = dataset.row(1);
+		bucket_lr.Train(trainingset, labels);
+		bucket_map.clear();
+		vector<pair<double, int>> records;
+		for (int i = 0; i < trainingset.n_cols; i++) {
+			records.push_back(pair<double, int>(trainingset[i], labels[i]));
+		}
+		bucket_map.bulk_load(records.begin(), records.end());
+	}
+
 	static void PredictNaiveSingleLR(const arma::mat& dataset, const arma::rowvec& labels, arma::mat& queryset, arma::rowvec& predictions) {
 		LinearRegression lr(dataset, labels);
 		for (int i = 0; i < queryset.n_cols; i++) {
@@ -291,13 +401,62 @@ class StageModel {
 		mat real_result;
 		bool loaded3 = mlpack::data::Load(filename_result, real_result);
 		arma::rowvec real_range = real_result.row(0);
-
 		arma::rowvec relative_error = abs(predicted_range - real_range);
 		relative_error /= real_range;
 		double total_error = arma::accu(relative_error);
 		double average_relative_error = total_error / relative_error.size();
 		cout << "average error: " << average_relative_error << endl;
 		return average_relative_error;
+	}
+
+	static double MeasureAccuracyWithVector(vector<double> &predicted_range, string filename_result = "C:/Users/Cloud/Desktop/LearnIndex/data/SortedSingleDimResults.csv") {
+		mat real_result;
+		bool loaded3 = mlpack::data::Load(filename_result, real_result);
+		arma::rowvec real_range = real_result.row(0);
+		vector<double> real_range_v;
+		for (int i = 0; i < real_range.n_cols; i++) {
+			real_range_v.push_back(real_range[i]);
+		}
+		double relative_error;
+		double accu = 0;
+		double accu_absolute = 0;
+		for (int i = 0; i < predicted_range.size(); i++) {
+			/*if (predicted_range[i] == INFINITY) {
+				cout << "i: " << i << "  " << predicted_range[i] << " " << real_range_v[i] << endl;
+			}*/
+			if (real_range_v[i] == 0) {
+				real_range_v[i] = 1;
+				continue;
+			}
+			relative_error = abs(predicted_range[i] - real_range_v[i]) / real_range_v[i];
+			accu += relative_error;
+			accu_absolute += abs(predicted_range[i] - real_range_v[i]);
+			//cout << i << " accu: " << accu << endl;
+			cout << i << " r_err: " << relative_error << endl;
+		}
+		double avg_rel_err = accu / predicted_range.size();
+		cout << "average relative error: " << avg_rel_err << endl;
+		cout << "average absolute error: " << accu_absolute / predicted_range.size() << endl;
+		return avg_rel_err;
+	}
+
+	static double MeasureAccuracyWithVector(vector<double> &predicted, vector<double> &actual) {
+		double relative_error;
+		double accu = 0;
+		double accu_absolute = 0;
+		for (int i = 0; i < predicted.size(); i++) {
+			if (actual[i] == 0) {
+				actual[i] = 1;
+				continue;
+			}
+			relative_error = abs(predicted[i] - actual[i]) / actual[i];
+			accu += relative_error;
+			accu_absolute += abs(predicted[i] - actual[i]);
+		}
+		double avg_rel_err = accu / predicted.size();
+		cout << "average relative error: " << avg_rel_err << endl;
+		cout << "average absolute error: " << accu_absolute / predicted.size() << endl;
+		return avg_rel_err;
 	}
 
 	void DumpParameters() {
@@ -308,7 +467,7 @@ class StageModel {
 			for (int j = 0; j < stage_model[i].size(); j++) {
 				arma::vec paras = stage_model[i][j].Parameters();
 				//cout << i << " " << j << ": " << endl;
-				paras.print();
+				//paras.print();
 				layer.push_back(pair<double, double>(paras[1], paras[0])); // the first one is b, the second one of para is a!
 			}
 			stage_model_parameters.push_back(layer);
@@ -323,4 +482,7 @@ class StageModel {
 	vector<vector<pair<double, double>>> stage_model_parameters; // first:a, second:b
 
 	vector<vector<arma::mat>> stage_queryset;
+
+	LinearRegression bucket_lr;
+	stx::btree_map<double, int> bucket_map;
 };
