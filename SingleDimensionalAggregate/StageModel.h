@@ -180,6 +180,13 @@ class StageModel {
 		}
 	}
 
+	static void RowvecToVector(arma::mat& queryset, vector<int> &query_v) {
+		query_v.clear();
+		for (int i = 0; i < queryset.n_cols; i++) {
+			query_v.push_back(queryset[i]);
+		}
+	}
+
 	static void VectorToRowvec(arma::mat& rv, vector<double> &v) {
 		rv.clear();
 		rv.set_size(v.size());
@@ -428,7 +435,7 @@ class StageModel {
 				real_range_v[i] = 1;
 				continue;
 			}
-			relative_error = abs(predicted_range[i] - real_range_v[i]) / real_range_v[i];
+			relative_error = abs((predicted_range[i] - real_range_v[i]) / real_range_v[i]);
 			accu += relative_error;
 			accu_absolute += abs(predicted_range[i] - real_range_v[i]);
 			//cout << i << " accu: " << accu << endl;
@@ -440,7 +447,7 @@ class StageModel {
 		return avg_rel_err;
 	}
 
-	static double MeasureAccuracyWithVector(vector<double> &predicted, vector<double> &actual) {
+	double MeasureAccuracyWithVector(vector<double> &predicted, vector<double> &actual) {
 		double relative_error;
 		double accu = 0;
 		double accu_absolute = 0;
@@ -449,7 +456,7 @@ class StageModel {
 				actual[i] = 1;
 				continue;
 			}
-			relative_error = abs(predicted[i] - actual[i]) / actual[i];
+			relative_error = abs((predicted[i] - actual[i]) / actual[i]);
 			accu += relative_error;
 			accu_absolute += abs(predicted[i] - actual[i]);
 		}

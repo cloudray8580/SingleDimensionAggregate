@@ -44,6 +44,7 @@
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v141</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
+    <WholeProgramOptimization>false</WholeProgramOptimization>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
@@ -144,11 +145,11 @@ xcopy /y "D:\mlpack3.0.4\mlpack-3.0.4\packages\OpenBLAS.0.2.14.1\lib\native\bin\
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <SDLCheck>true</SDLCheck>
+      <SDLCheck>false</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>D:\boost_1_66_0;D:\mlpack3.0.4\armadillo-9.200.6\include;D:\mlpack3.0.4\mlpack-3.0.4\build\include;D:\stxbtree\stx-btree-0.9\include;D:\VSProject\STXBtreeTest\STXBtreeTest\packages\boost.1.68.0.0\lib\native\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>D:\boost_1_66_0;D:\mlpack3.0.4\armadillo-9.200.6\include;D:\mlpack3.0.4\mlpack-3.0.4\build\include;D:\stxbtree\stx-btree-0.9\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -164,9 +165,13 @@ xcopy /y "D:\mlpack3.0.4\mlpack-3.0.4\packages\OpenBLAS.0.2.14.1\lib\native\bin\
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="AggregateQuery.h" />
+    <ClInclude Include="BoostRtree.h" />
+    <ClInclude Include="Hilbert.h" />
+    <ClInclude Include="Learned2D.h" />
     <ClInclude Include="LearnIndexAggregate.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="StageModel.h" />
+    <ClInclude Include="Stx2D.h" />
     <ClInclude Include="STXBtreeAggregate.h" />
     <ClInclude Include="TestLibs.h" />
     <ClInclude Include="Utils.h" />
