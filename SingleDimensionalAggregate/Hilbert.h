@@ -185,9 +185,6 @@ typedef struct interval {
 void inline sub_range_decompose(unsigned max_bits, unsigned current_bits, unsigned using_bits, int down_x, int up_x, int down_y, int up_y, int center_x, int center_y, direction pre, direction dir, quadrant quad_, vector<interval> &intervals) { // here we should use stack instead
 
 	// debug info
-	//if (intervals.size() == 635) {
-	//	cout << "debug here !" << endl;
-	//}
 	//cout << down_x << " " << up_x << " " << down_y << " " << up_y << endl;
 	//cout << up_x - down_x << " " << up_y - down_y << endl;
 	//if ((up_x - down_x > (1 << current_bits)) || (up_y - down_y > (1 << current_bits))) {
@@ -209,13 +206,96 @@ void inline sub_range_decompose(unsigned max_bits, unsigned current_bits, unsign
 		return;
 	}
 
-	bool square_region = false;
-
-	// if meet the using_bits constraint
-	if (current_bits == max_bits - using_bits) {
-		square_region = true;
+	clockdirection clockdir = clock_direction[pre][dir];
+	if (current_bits == max_bits) {
+		clockdir = counterclockwise;
 	}
 
+	// if meet the using_bits constraint, using the current squre as an interval
+	if (current_bits == max_bits - using_bits) {
+		// return this inverval
+		interval inter;
+		bitmask_t coord[2];
+
+		up_x = center_x + (1 << current_bits-1) - 1;
+		up_y = center_y + (1 << current_bits-1) - 1;
+		down_x = center_x - (1 << current_bits-1);
+		down_y = center_y - (1 << current_bits-1);
+
+		switch (clockdir) {
+		case clockwise:
+			switch (dir) {
+			case up_:
+				inter.lower_x = up_x;
+				inter.upper_x = down_x;
+				inter.lower_y = up_y;
+				inter.upper_y = up_y;
+				break;
+			case left_:
+				inter.lower_x = down_x;
+				inter.upper_x = down_x;
+				inter.lower_y = up_y;
+				inter.upper_y = down_y;
+				break;
+			case right_:
+				inter.lower_x = up_x;
+				inter.upper_x = up_x;
+				inter.lower_y = down_y;
+				inter.upper_y = up_y;
+				break;
+			case down_:
+				inter.lower_x = down_x;
+				inter.upper_x = up_x;
+				inter.lower_y = down_y;
+				inter.upper_y = down_y;
+				break;
+			}
+			break;
+		case counterclockwise:
+			switch (dir) {
+			case up_:
+				inter.lower_x = down_x;
+				inter.upper_x = up_x;
+				inter.lower_y = up_y;
+				inter.upper_y = up_y;
+				break;
+			case left_:
+				inter.lower_x = down_x;
+				inter.upper_x = down_x;
+				inter.lower_y = down_y;
+				inter.upper_y = up_y;
+				break;
+			case right_:
+				inter.lower_x = up_x;
+				inter.upper_x = up_x;
+				inter.lower_y = up_y;
+				inter.upper_y = down_y;
+				break;
+			case down_:
+				inter.lower_x = up_x;
+				inter.upper_x = down_x;
+				inter.lower_y = down_y;
+				inter.upper_y = down_y;
+				break;
+			}
+			break;
+		case unavailable:
+			// do noting
+			break;
+		}
+		coord[0] = inter.lower_x;
+		coord[1] = inter.lower_y;
+		inter.lower_hilbert_value = hilbert_c2i(2, max_bits, coord);
+		//cout << inter.lower_hilbert_value << endl;
+		coord[0] = inter.upper_x;
+		coord[1] = inter.upper_y;
+		inter.upper_hilbert_value = hilbert_c2i(2, max_bits, coord);
+		//cout << inter.upper_hilbert_value << endl;
+		intervals.push_back(inter);
+		return;
+	}
+
+	bool square_region = false;
 	// if it covers the entire region or one quarter of the region
 	double half_region = 1 << (current_bits - 1);
 	if (down_x == center_x - half_region && down_y == center_y - half_region && up_x == center_x + half_region - 1 && up_y == center_y + half_region - 1) {
@@ -245,11 +325,6 @@ void inline sub_range_decompose(unsigned max_bits, unsigned current_bits, unsign
 			break;
 		}
 	}*/
-
-	clockdirection clockdir = clock_direction[pre][dir];
-	if (current_bits == max_bits) {
-		clockdir = counterclockwise;
-	}
 
 	if (square_region) {
 		// return this inverval
@@ -319,10 +394,11 @@ void inline sub_range_decompose(unsigned max_bits, unsigned current_bits, unsign
 		coord[0] = inter.lower_x;
 		coord[1] = inter.lower_y;
 		inter.lower_hilbert_value = hilbert_c2i(2, max_bits, coord);
+		//cout << inter.lower_hilbert_value << endl;
 		coord[0] = inter.upper_x;
 		coord[1] = inter.upper_y;
 		inter.upper_hilbert_value = hilbert_c2i(2, max_bits, coord);
-
+		//cout << inter.upper_hilbert_value << endl;
 		intervals.push_back(inter);
 		return;
 	}

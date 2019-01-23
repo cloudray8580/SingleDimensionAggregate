@@ -42,10 +42,16 @@
     <ClInclude Include="Stx2D.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="Learned2D.h">
+    <ClInclude Include="BoostRtree.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="BoostRtree.h">
+    <ClInclude Include="StageModel2D.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="StageModelBottomUp.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="StageModel2D_2.h">
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>

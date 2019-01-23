@@ -58,8 +58,8 @@ void CalculateRealSum(vector<double> &results) {
 }
 
 void CalculateRealCountWithScan2D(mat &dataset, mat &queryset, vector<int> &real_results) {
-	arma::rowvec x = dataset.row(0); // hilbert value
-	arma::rowvec y = dataset.row(1); // order
+	arma::rowvec x = dataset.row(0); // x
+	arma::rowvec y = dataset.row(1); // y
 	vector<double> x_v, y_v;
 	StageModel::RowvecToVector(x, x_v);
 	StageModel::RowvecToVector(y, y_v);
@@ -79,6 +79,50 @@ void CalculateRealCountWithScan2D(mat &dataset, mat &queryset, vector<int> &real
 		count = 0;
 		for (int j = 0; j < x_v.size(); j++) {
 			if (x_v[j]>= query_x_low_v[i] && x_v[j]<= query_x_up_v[i] && y_v[j]>= query_y_low_v[i] && y_v[j]<= query_y_up_v[i]) {
+				count++;
+			}
+		}
+		real_results.push_back(count);
+		/*if (i % 10000 == 0) {
+			cout << "Utils...calculating real results..." << i << endl;
+		}*/
+	}
+	auto t1 = chrono::steady_clock::now();
+	cout << "Total Time in chrono: " << chrono::duration_cast<chrono::nanoseconds>(t1 - t0).count() << " ns" << endl;
+	cout << "Average Time in chrono: " << chrono::duration_cast<chrono::nanoseconds>(t1 - t0).count() / (queryset.size() / queryset.n_rows) << " ns" << endl;
+	// save real resutls to file
+	ofstream outfile;
+	outfile.open("C:/Users/Cloud/Desktop/LearnIndex/data/Sorted2DimResults_REAL.csv");
+	for (int i = 0; i < real_results.size(); i++) {
+		outfile << real_results[i] << endl;
+	}
+	outfile.close();
+}
+
+void CalculateRealCountWithScan2D(mat &queryset, vector<int> &real_results) {
+	mat dataset;
+	mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/HilbertSortedPOIs2_22.csv", dataset);
+	arma::rowvec x = dataset.row(0); // x
+	arma::rowvec y = dataset.row(1); // y
+	vector<double> x_v, y_v;
+	StageModel::RowvecToVector(x, x_v);
+	StageModel::RowvecToVector(y, y_v);
+
+	mat queryset_x_low = queryset.row(0);
+	mat queryset_x_up = queryset.row(1);
+	mat queryset_y_low = queryset.row(2);
+	mat queryset_y_up = queryset.row(3);
+	vector<double> query_x_low_v, query_x_up_v, query_y_low_v, query_y_up_v;
+	StageModel::RowvecToVector(queryset_x_low, query_x_low_v);
+	StageModel::RowvecToVector(queryset_x_up, query_x_up_v);
+	StageModel::RowvecToVector(queryset_y_low, query_y_low_v);
+	StageModel::RowvecToVector(queryset_y_up, query_y_up_v);
+	auto t0 = chrono::steady_clock::now();
+	int count;
+	for (int i = 0; i < query_x_low_v.size(); i++) {
+		count = 0;
+		for (int j = 0; j < x_v.size(); j++) {
+			if (x_v[j] >= query_x_low_v[i] && x_v[j] <= query_x_up_v[i] && y_v[j] >= query_y_low_v[i] && y_v[j] <= query_y_up_v[i]) {
 				count++;
 			}
 		}
@@ -146,4 +190,37 @@ void CompareResults() {
 		outfile << i << "," << real_v[i] << "," << pred_v[i] << endl;
 	}
 	outfile.close();
+}
+
+void RowvecToVector(arma::mat& matrix, vector<double> &vec) {
+	vec.clear();
+	for (int i = 0; i < matrix.n_cols; i++) {
+		vec.push_back(matrix[i]);
+	}
+}
+
+void RowvecToVector(arma::mat& matrix, vector<int> &vec) {
+	vec.clear();
+	for (int i = 0; i < matrix.n_cols; i++) {
+		vec.push_back(matrix[i]);
+	}
+}
+
+void MeasureAccuracy(vector<int> &predicted_results, vector<int> &real_results) {
+	double relative_error;
+	double accu = 0;
+	double accu_absolute = 0;
+	int total_size = predicted_results.size();
+	for (int i = 0; i < total_size; i++) {
+		if (real_results[i] == 0) {
+			total_size--;
+			continue;
+		}
+		relative_error = abs(double(predicted_results[i] - real_results[i]) / real_results[i]);
+		accu += relative_error;
+		accu_absolute += abs(predicted_results[i] - real_results[i]);
+		//cout << "relative error " << i << ": " << relative_error << endl;
+	}
+	cout << "average relative error: " << accu / total_size << endl;
+	cout << "average absolute error: " << accu_absolute / total_size << endl;
 }

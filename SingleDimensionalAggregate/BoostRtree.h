@@ -26,10 +26,10 @@ using namespace std;
 typedef bg::model::d2::point_xy<double> MyPoint; // need to include point_xy.hpp
 typedef bg::model::box<MyPoint> Box;
 
-void RtreeCount() {
+void RtreeCount(int query_region = 1) {
 	// load dataset
 	mat dataset;
-	bool loaded = mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/HilbertSortedPOIs2.csv", dataset);
+	bool loaded = mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/HilbertSortedPOIs2_22.csv", dataset);
 	arma::rowvec x = dataset.row(0); // x
 	arma::rowvec y = dataset.row(1); // y
 	vector<double> x_v, y_v;
@@ -46,7 +46,42 @@ void RtreeCount() {
 
 	// load queryset
 	mat queryset;
-	bool loaded2 = mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/Sorted2DimQuery2.csv", queryset);
+	switch (query_region) {
+	case 1:
+		mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/RangeQueryCollection100m.csv", queryset);
+		break;
+	case 2:
+		mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/RangeQueryCollection200m.csv", queryset);
+		break;
+	case 3:
+		mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/RangeQueryCollection500m.csv", queryset);
+		break;
+	case 4:
+		mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/RangeQueryCollection1km.csv", queryset);
+		break;
+	case 5:
+		mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/RangeQueryCollection2km.csv", queryset);
+		break;
+	case 6:
+		mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/RangeQueryCollection5km.csv", queryset);
+		break;
+	case 7:
+		mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/RangeQueryCollection10km.csv", queryset);
+		break;
+	case 8:
+		mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/RangeQueryCollection20km.csv", queryset);
+		break;
+	case 9:
+		mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/RangeQueryCollection50km.csv", queryset);
+		break;
+	case 10:
+		mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/RangeQueryCollection100km.csv", queryset);
+		break;
+	default:
+		mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/Sorted2DimQuery2.csv", queryset);
+		break;
+	}
+
 	mat queryset_x_low = queryset.row(0);
 	mat queryset_x_up = queryset.row(1);
 	mat queryset_y_low = queryset.row(2);

@@ -3,10 +3,204 @@
 #include "STXBtreeAggregate.h"
 #include "StageModel.h"
 #include "Hilbert.h"
+#include "StageModel2D.h"
+#include "StageModel2D_2.h"
 
 using namespace std;
 
-void Count2DLearnedIndex(unsigned max_bits, unsigned using_bits = 0) {
+void Count2DLearnedIndex2D_2(int query_region) {
+	vector<pair<int, int>> arch;
+	arch.push_back(pair<int, int>(1,1));
+	arch.push_back(pair<int, int>(3, 3));
+	arch.push_back(pair<int, int>(10, 10));
+	arch.push_back(pair<int, int>(100, 100));
+
+	StageModel2D_2 stage_model_2d_2(arch);
+
+	mat dataset;
+	mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/Sorted2DimTrainingSet1000_1000.csv", dataset);
+	arma::mat trainingset = dataset.rows(0, 1); // x and y
+	arma::rowvec responses = dataset.row(2); // count
+	stage_model_2d_2.Train(trainingset, responses);
+
+	mat queryset;
+	switch (query_region) {
+	case 1:
+		mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/RangeQueryCollection100m.csv", queryset);
+		break;
+	case 2:
+		mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/RangeQueryCollection200m.csv", queryset);
+		break;
+	case 3:
+		mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/RangeQueryCollection500m.csv", queryset);
+		break;
+	case 4:
+		mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/RangeQueryCollection1km.csv", queryset);
+		break;
+	case 5:
+		mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/RangeQueryCollection2km.csv", queryset);
+		break;
+	case 6:
+		mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/RangeQueryCollection5km.csv", queryset);
+		break;
+	case 7:
+		mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/RangeQueryCollection10km.csv", queryset);
+		break;
+	case 8:
+		mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/RangeQueryCollection20km.csv", queryset);
+		break;
+	case 9:
+		mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/RangeQueryCollection50km.csv", queryset);
+		break;
+	case 10:
+		mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/RangeQueryCollection100km.csv", queryset);
+		break;
+	default:
+		mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/Sorted2DimQuery2.csv", queryset);
+		break;
+	}
+	mat queryset_x_low = queryset.row(0);
+	mat queryset_x_up = queryset.row(1);
+	mat queryset_y_low = queryset.row(2);
+	mat queryset_y_up = queryset.row(3);
+	vector<double> query_x_low_v, query_x_up_v, query_y_low_v, query_y_up_v;
+	RowvecToVector(queryset_x_low, query_x_low_v);
+	RowvecToVector(queryset_x_up, query_x_up_v);
+	RowvecToVector(queryset_y_low, query_y_low_v);
+	RowvecToVector(queryset_y_up, query_y_up_v);
+
+	auto t0 = chrono::steady_clock::now();
+
+	//double count, count_full, count_min, count_half_1, count_half_2;
+	vector<double> count_upper_right, count_lower_left, count_upper_left, count_lower_right;
+	stage_model_2d_2.PredictVector(query_x_up_v, query_y_up_v, count_upper_right);
+	stage_model_2d_2.PredictVector(query_x_low_v, query_y_low_v, count_lower_left);
+	stage_model_2d_2.PredictVector(query_x_low_v, query_y_up_v, count_upper_left);
+	stage_model_2d_2.PredictVector(query_x_up_v, query_y_low_v, count_lower_right);
+
+	vector<int> predicted_results;
+	double count = 0;
+	for (int i = 0; i < count_upper_right.size(); i++) {
+		count = count_upper_right[i] - count_upper_left[i] - count_lower_right[i] + count_lower_left[i];
+		predicted_results.push_back(count);
+	}
+
+	auto t1 = chrono::steady_clock::now();
+	cout << "Total Time in chrono: " << chrono::duration_cast<chrono::nanoseconds>(t1 - t0).count() << " ns" << endl;
+	cout << "Average Time in chrono: " << chrono::duration_cast<chrono::nanoseconds>(t1 - t0).count() / (queryset.size() / queryset.n_rows) << " ns" << endl;
+	cout << "finish stage model prediction.." << endl;
+
+	// save results to file
+	ofstream outfile;
+	outfile.open("C:/Users/Cloud/Desktop/LearnIndex/data/Sorted2DimResults_LEARN.csv");
+	for (int i = 0; i < predicted_results.size(); i++) {
+		outfile << predicted_results[i] << endl;
+	}
+	outfile.close();
+
+	// measure accuracy
+	vector<int> real_results;
+	CalculateRealCountWithScan2D(queryset, real_results);
+	MeasureAccuracy(predicted_results, real_results);
+}
+
+void Count2DLearnedIndex2D(int query_region) {
+	vector<int> arch;
+	arch.push_back(1);
+	arch.push_back(10);
+	arch.push_back(100);
+	arch.push_back(1000);
+
+	StageModel2D stage_model_2d(arch);
+
+	mat dataset;
+	mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/Sorted2DimTrainingSet1000_1000.csv", dataset);
+	arma::mat trainingset = dataset.rows(0, 1); // x and y
+	arma::rowvec responses = dataset.row(2); // count
+	stage_model_2d.Train(trainingset, responses);
+
+	mat queryset;
+	switch (query_region) {
+	case 1:
+		mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/RangeQueryCollection100m.csv", queryset);
+		break;
+	case 2:
+		mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/RangeQueryCollection200m.csv", queryset);
+		break;
+	case 3:
+		mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/RangeQueryCollection500m.csv", queryset);
+		break;
+	case 4:
+		mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/RangeQueryCollection1km.csv", queryset);
+		break;
+	case 5:
+		mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/RangeQueryCollection2km.csv", queryset);
+		break;
+	case 6:
+		mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/RangeQueryCollection5km.csv", queryset);
+		break;
+	case 7:
+		mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/RangeQueryCollection10km.csv", queryset);
+		break;
+	case 8:
+		mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/RangeQueryCollection20km.csv", queryset);
+		break;
+	case 9:
+		mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/RangeQueryCollection50km.csv", queryset);
+		break;
+	case 10:
+		mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/RangeQueryCollection100km.csv", queryset);
+		break;
+	default:
+		mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/Sorted2DimQuery2.csv", queryset);
+		break;
+	}
+	mat queryset_x_low = queryset.row(0);
+	mat queryset_x_up = queryset.row(1);
+	mat queryset_y_low = queryset.row(2);
+	mat queryset_y_up = queryset.row(3);
+	vector<double> query_x_low_v, query_x_up_v, query_y_low_v, query_y_up_v;
+	RowvecToVector(queryset_x_low, query_x_low_v);
+	RowvecToVector(queryset_x_up, query_x_up_v);
+	RowvecToVector(queryset_y_low, query_y_low_v);
+	RowvecToVector(queryset_y_up, query_y_up_v);
+
+	auto t0 = chrono::steady_clock::now();
+
+	//double count, count_full, count_min, count_half_1, count_half_2;
+	vector<double> count_upper_right, count_lower_left, count_upper_left, count_lower_right;
+	stage_model_2d.PredictVector(query_x_up_v, query_y_up_v, count_upper_right);
+	stage_model_2d.PredictVector(query_x_low_v, query_y_low_v, count_lower_left);
+	stage_model_2d.PredictVector(query_x_low_v, query_y_up_v, count_upper_left);
+	stage_model_2d.PredictVector(query_x_up_v, query_y_low_v, count_lower_right);
+
+	vector<int> predicted_results;
+	double count = 0;
+	for (int i = 0; i < count_upper_right.size(); i++) {
+		count = count_upper_right[i] - count_upper_left[i] - count_lower_right[i] + count_lower_left[i];
+		predicted_results.push_back(count);
+	}
+
+	auto t1 = chrono::steady_clock::now();
+	cout << "Total Time in chrono: " << chrono::duration_cast<chrono::nanoseconds>(t1 - t0).count() << " ns" << endl;
+	cout << "Average Time in chrono: " << chrono::duration_cast<chrono::nanoseconds>(t1 - t0).count() / (queryset.size() / queryset.n_rows) << " ns" << endl;
+	cout << "finish stage model prediction.." << endl;
+
+	// save results to file
+	ofstream outfile;
+	outfile.open("C:/Users/Cloud/Desktop/LearnIndex/data/Sorted2DimResults_LEARN.csv");
+	for (int i = 0; i < predicted_results.size(); i++) {
+		outfile << predicted_results[i] << endl;
+	}
+	outfile.close();
+
+	// measure accuracy
+	vector<int> real_results;
+	CalculateRealCountWithScan2D(queryset, real_results);
+	MeasureAccuracy(predicted_results, real_results);
+}
+
+void Count2DLearnedIndex(int query_region, unsigned max_bits, unsigned using_bits = 0) {
 
 	if (using_bits == 0) {
 		using_bits = max_bits;
@@ -22,11 +216,46 @@ void Count2DLearnedIndex(unsigned max_bits, unsigned using_bits = 0) {
 	bool loaded = mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/HilbertSortedPOIs2_22.csv", dataset);
 	arma::rowvec trainingset = dataset.row(4); // hilbert value
 	arma::rowvec responses = dataset.row(5); // order
-	StageModel stage_model(trainingset, responses, arch); // need to set TOTAL_SIZE to total_sum
+	StageModel stage_model(trainingset, responses, arch);
 	stage_model.DumpParameters();
 
 	mat queryset;
-	bool loaded2 = mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/Sorted2DimQuery2.csv", queryset);
+	switch (query_region) {
+	case 1:
+		mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/RangeQueryCollection100m.csv", queryset);
+		break;
+	case 2:
+		mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/RangeQueryCollection200m.csv", queryset);
+		break;
+	case 3:
+		mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/RangeQueryCollection500m.csv", queryset);
+		break;
+	case 4:
+		mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/RangeQueryCollection1km.csv", queryset);
+		break;
+	case 5:
+		mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/RangeQueryCollection2km.csv", queryset);
+		break;
+	case 6:
+		mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/RangeQueryCollection5km.csv", queryset);
+		break;
+	case 7:
+		mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/RangeQueryCollection10km.csv", queryset);
+		break;
+	case 8:
+		mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/RangeQueryCollection20km.csv", queryset);
+		break;
+	case 9:
+		mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/RangeQueryCollection50km.csv", queryset);
+		break;
+	case 10:
+		mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/RangeQueryCollection100km.csv", queryset);
+		break;
+	default:
+		mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/Sorted2DimQuery2.csv", queryset);
+		break;
+	}
+
 	mat queryset_x_low = queryset.row(0);
 	mat queryset_x_up = queryset.row(1);
 	mat queryset_y_low = queryset.row(2);
