@@ -5,14 +5,66 @@
 #include "Hilbert.h"
 #include "StageModel2D.h"
 #include "StageModel2D_2.h"
+#include "StageModelBottomUp.h"
 
 using namespace std;
+
+void TestStageModelBottomUp() {
+	StageModelBottomUp stage_model_bottom_up(4,100000,1000);
+
+	mat dataset;
+	bool loaded = mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/SortedSingleDimPOIs2.csv", dataset);
+	arma::rowvec trainingset = dataset.row(0);
+	arma::rowvec responses = dataset.row(dataset.n_rows - 1);
+
+	//stage_model_bottom_up.TrainBottomLayer(trainingset, responses);
+	stage_model_bottom_up.TrainAdaptiveBottomLayer(trainingset, responses);
+
+	stage_model_bottom_up.DumpParameter();
+	stage_model_bottom_up.BuildNonLeafLayerWithBtree();
+
+	mat queryset;
+	bool loaded2 = mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/SortedSingleDimQuery2.csv", queryset);
+	arma::rowvec query_x_low = queryset.row(0);
+	arma::rowvec query_x_up = queryset.row(1);
+	
+	vector<double> queryset_x_up_v, queryset_x_low_v;
+	RowvecToVector(query_x_up, queryset_x_up_v);
+	RowvecToVector(query_x_low, queryset_x_low_v);
+
+	vector<int> predicted_results_x_up, predicted_results_x_low, predicted_results, real_results;
+
+	auto t0 = chrono::steady_clock::now();
+
+	stage_model_bottom_up.PredictWithStxBtree(queryset_x_up_v, predicted_results_x_up);
+	stage_model_bottom_up.PredictWithStxBtree(queryset_x_low_v, predicted_results_x_low);
+
+	for (int i = 0; i < predicted_results_x_up.size(); i++) {
+		predicted_results.push_back(predicted_results_x_up[i] - predicted_results_x_low[i]);
+	}
+
+	auto t1 = chrono::steady_clock::now();
+	cout << "Total Time in chrono: " << chrono::duration_cast<chrono::nanoseconds>(t1 - t0).count() << " ns" << endl;
+	cout << "Average Time in chrono: " << chrono::duration_cast<chrono::nanoseconds>(t1 - t0).count() / (queryset.size() / queryset.n_rows) << " ns" << endl;
+	cout << "Total nodes in btree index: " << stage_model_bottom_up.bottom_layer_index.CountNodesPrimary() << endl;
+
+	// save results to file
+	ofstream outfile;
+	outfile.open("C:/Users/Cloud/Desktop/LearnIndex/data/Sorted1DimResults_LEARN.csv");
+	for (int i = 0; i < predicted_results.size(); i++) {
+		outfile << predicted_results[i] << endl;
+	}
+	outfile.close();
+
+	CalculateRealCountWithScan1D(queryset, real_results);
+	MeasureAccuracy(predicted_results, real_results);
+}
 
 void Count2DLearnedIndex2D_2(int query_region) {
 	vector<pair<int, int>> arch;
 	arch.push_back(pair<int, int>(1,1));
 	arch.push_back(pair<int, int>(3, 3));
-	arch.push_back(pair<int, int>(10, 10));
+	arch.push_back(pair<int, int>(10, 10));  
 	arch.push_back(pair<int, int>(100, 100));
 
 	StageModel2D_2 stage_model_2d_2(arch);

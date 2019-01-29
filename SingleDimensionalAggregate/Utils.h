@@ -143,6 +143,48 @@ void CalculateRealCountWithScan2D(mat &queryset, vector<int> &real_results) {
 	outfile.close();
 }
 
+void CalculateRealCountWithScan1D(mat &queryset, vector<int> &real_results) {
+	mat dataset;
+	mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/SortedSingleDimPOIs2.csv", dataset);
+	arma::rowvec x = dataset.row(0); // x
+	arma::rowvec y = dataset.row(1); // y
+	vector<double> x_v, y_v;
+	StageModel::RowvecToVector(x, x_v);
+	StageModel::RowvecToVector(y, y_v);
+
+	mat queryset_x_low = queryset.row(0);
+	mat queryset_x_up = queryset.row(1);
+	vector<double> query_x_low_v, query_x_up_v;
+	StageModel::RowvecToVector(queryset_x_low, query_x_low_v);
+	StageModel::RowvecToVector(queryset_x_up, query_x_up_v);
+
+	auto t0 = chrono::steady_clock::now();
+	int count;
+	for (int i = 0; i < query_x_low_v.size(); i++) {
+		count = 0;
+		for (int j = 0; j < x_v.size(); j++) {
+			if (x_v[j] >= query_x_low_v[i] && x_v[j] <= query_x_up_v[i]) {
+				count++;
+			}
+		}
+		real_results.push_back(count);
+		/*if (i % 10000 == 0) {
+			cout << "Utils...calculating real results..." << i << endl;
+		}*/
+	}
+	auto t1 = chrono::steady_clock::now();
+	//cout << "Total Time in chrono: " << chrono::duration_cast<chrono::nanoseconds>(t1 - t0).count() << " ns" << endl;
+	//cout << "Average Time in chrono: " << chrono::duration_cast<chrono::nanoseconds>(t1 - t0).count() / (queryset.size() / queryset.n_rows) << " ns" << endl;
+	
+	// save real resutls to file
+	ofstream outfile;
+	outfile.open("C:/Users/Cloud/Desktop/LearnIndex/data/SortedDimResults_REAL.csv");
+	for (int i = 0; i < real_results.size(); i++) {
+		outfile << real_results[i] << endl;
+	}
+	outfile.close();
+}
+
 void TestApproximationWithDataset(string dataset_file="C:/Users/Cloud/Desktop/LearnIndex/data/HilbertSortedPOIs2_22.csv") {
 	vector<int> arch;
 	arch.push_back(1);
