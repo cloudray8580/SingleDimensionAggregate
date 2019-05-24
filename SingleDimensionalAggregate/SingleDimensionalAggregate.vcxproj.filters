@@ -54,6 +54,30 @@
     <ClInclude Include="StageModel2D_2.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="Atree.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="TestNN.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Douglas.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="EntropyHist.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Histogram.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ROLLearnedIndex_quadratic.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ROLLearnedIndex_cubic.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ROLLearnedIndex_quartic.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">

@@ -5,13 +5,21 @@
 #include <stx/btree.h> 
 #include <stx/btree_map.h>
 
+#include <mlpack/methods/ann/ffn_impl.hpp>
+#include <mlpack/methods/ann/ffn.hpp>
+//#include <mlpack/methods/ann/layer/layer.hpp>
+#include <mlpack/methods/ann/loss_functions/mean_squared_error.hpp>
+
 using namespace mlpack::regression;
 using namespace std;
 
 class StageModel {
  public:
 	//todo: handle untrained model!
-	StageModel(const arma::mat& dataset, const arma::rowvec& labels, vector<int> &architecture, int type = 0) {
+	StageModel(const arma::mat& dataset, const arma::rowvec& labels, vector<int> &architecture, int type = 0, int error_threshold = 100) {
+		
+		this->error_threshold = error_threshold;
+		
 		int TOTAL_SIZE;
 		switch (type) {
 		case 0: // COUNT
@@ -24,6 +32,9 @@ class StageModel {
 			break;
 		}
 		this->TOTAL_SIZE = TOTAL_SIZE;
+
+		//arma::rowvec norm_dataset = normalise(dataset,2,1);
+		//norm_dataset.print();
 
 		// initialize stage_dataset and stage_label
 		vector<arma::mat> stage_dataset_layer;
@@ -48,10 +59,31 @@ class StageModel {
 		for(int i = 0; i < architecture.size(); i++) {
 			stage_layer.clear();
 			if (i == 0) {
+
+				arma::rowvec predictions;
+
+				// using LR as the first layer
 				LinearRegression lr(dataset, labels);
 				stage_layer.push_back(lr);
-				arma::rowvec predictions;
 				lr.Predict(dataset, predictions);
+
+				//// using NN as the first layer
+				//mlpack::ann::FFN<mlpack::ann::MeanSquaredError<>> model;
+				//model.Add<mlpack::ann::Linear<>>(dataset.n_rows, 8);
+				//model.Add<mlpack::ann::LeakyReLU<>>();
+				//model.Add<mlpack::ann::Linear<>>(8, 8);
+				//model.Add<mlpack::ann::LeakyReLU<>>();
+				//model.Add<mlpack::ann::Linear<>>(8, 1);
+				//model.Add<mlpack::ann::LeakyReLU<>>();
+
+				//// Train the model.
+				//for (int i = 0; i < 10; i++) {
+				//	model.Train(dataset, labels);
+				//}
+				//model.Predict(dataset, predictions);
+				//first_layer_NN = model;
+				//predictions.print();
+
 				// distribute training set
 				if (i != architecture.size() - 1)
 					DistributeTrainingSetOptimized(predictions, stage_dataset[i][0], stage_label[i][0], i + 1, architecture[i + 1], TOTAL_SIZE);
@@ -70,6 +102,74 @@ class StageModel {
 			}
 			stage_model.push_back(stage_layer);
 		 }
+
+		if (error_threshold == -1) {
+			return; // do not do replacement
+		}
+
+		// do error checking and replacement
+		int bottom_layer = architecture.size()-1;
+		int bottom_layer_size = architecture[bottom_layer];
+		int btree_count = 0;
+		double error = 0;
+		int empty_model_count = 0;
+
+		replacement_btree_index.clear();
+		for (int i = 0; i < bottom_layer_size; i++) {
+			replacement_btree_index.push_back(-1);
+		}
+
+		replaced_btree.clear();
+		for (int i = 0; i < bottom_layer_size; i++) {
+			// test arruracy
+			if (stage_dataset[bottom_layer][i].size() == 0) {
+				empty_model_count++;
+				continue;
+			}
+			error = MeasureMaxAbsoluteError(stage_dataset[bottom_layer][i], stage_label[bottom_layer][i], stage_model[bottom_layer][i]);
+			if (error > error_threshold) {
+				// train btree on this dataset
+				stx::btree<double, int> btree;
+				for (int k = 0; k < stage_dataset[bottom_layer][i].size(); k++) {
+					btree.insert(pair<double, int>(stage_dataset[bottom_layer][i][k], stage_label[bottom_layer][i][k]));
+				}
+				replaced_btree.push_back(btree);
+				replacement_btree_index[i] = btree_count;
+				btree_count++;
+			}
+		}
+
+		cout << "empty model amount: " << empty_model_count << endl;
+		// calculate btree height
+		int min_height = 100;
+		int max_height = 0;
+		int average_height = 0;
+		int height = 0;
+		for (int i = 0; i < replaced_btree.size(); i++) {
+			height = replaced_btree[i].CountLayers();
+			if (height > max_height) {
+				max_height = height;
+			}
+			if (height < min_height) {
+				min_height = height;
+			}
+			average_height += height;
+		}
+		cout << "max btree height: " << max_height << endl;
+		cout << "min btree height: " << min_height << endl;
+		if(replaced_btree.size() != 0)
+			cout << "average btree height: " << average_height / replaced_btree.size() << endl;
+	}
+
+	double inline MeasureMaxAbsoluteError(arma::mat &testset, arma::rowvec &response, LinearRegression &lr) {
+		// do the predicition
+		arma::rowvec prediction;
+		lr.Predict(testset, prediction);
+
+		arma::rowvec absolute_error = abs(prediction - response);
+		absolute_error.elem(find_nonfinite(absolute_error)).zeros(); // 'remove' ¡ÀInf or NaN
+		int index = absolute_error.index_max();
+		return absolute_error.at(index);
 	}
 
 	void InitQuerySet(const arma::mat& queryset) {
@@ -219,6 +319,129 @@ class StageModel {
 			}
 			results.push_back(result);
 		}
+	}
+
+	void PredictVectorWithErrorThreshold(vector<double> &queryset, vector<double> &results) {
+		double result;
+		results.clear();
+		double a, b;
+		int index = 0;
+		int bottom_layer = stage_model_parameters.size() - 1;
+		stx::btree<double, int>::iterator iter;
+		for (int k = 0; k < queryset.size(); k++) {
+			index = 0;
+			// for the non-leaf layer
+			for (int i = 0; i < stage_model_parameters.size() - 1; i++) {
+				a = stage_model_parameters[i][index].first;
+				b = stage_model_parameters[i][index].second;
+				result = a * queryset[k] + b;
+				
+				index = (result / TOTAL_SIZE * stage_model_parameters[i + 1].size());
+				//index *= stage_model_parameters[i + 1].size();
+				//index = int(index);
+				if (index < 0) {
+					index = 0;
+				}
+				else if (index > stage_model_parameters[i + 1].size() - 1) {
+					index = stage_model_parameters[i + 1].size() - 1;
+				}
+			}
+			// for the bottom layer
+			if (replacement_btree_index[index] == -1) {
+				a = stage_model_parameters[bottom_layer][index].first;
+				b = stage_model_parameters[bottom_layer][index].second;
+				result = a * queryset[k] + b;
+			}
+			else {
+				// using btree
+				iter = this->replaced_btree[replacement_btree_index[index]].lower_bound(queryset[k]);
+				result = iter->second;
+			}
+			results.push_back(result);
+		}
+	}
+
+	// using NN as the first layer
+	void PredictVectorWithNN(vector<double> &queryset, vector<double> &results) {
+		double result;
+		results.clear();
+		double a, b;
+		int index = 0;
+		vector<int> arch;
+		arch.push_back(8);
+		arch.push_back(1);
+
+		for (int k = 0; k < queryset.size(); k++) {
+			index = 0;
+
+			// calculate NN part
+			CalculateNN(queryset[k], arch, NNParms, index);
+			if (index < 0) {
+				index = 0;
+			}
+			else if (index > stage_model_parameters[1].size() - 1) {
+				index = stage_model_parameters[1].size() - 1;
+			}
+			cout << index << endl;
+
+			for (int i = 1; i < stage_model_parameters.size(); i++) {
+				a = stage_model_parameters[i][index].first;
+				b = stage_model_parameters[i][index].second;
+				result = a * queryset[k] + b;
+				if (i < stage_model_parameters.size() - 1) {
+					index = (result / TOTAL_SIZE * stage_model_parameters[i + 1].size());
+					//index *= stage_model_parameters[i + 1].size();
+					//index = int(index);
+					if (index < 0) {
+						index = 0;
+					}
+					else if (index > stage_model_parameters[i + 1].size() - 1) {
+						index = stage_model_parameters[i + 1].size() - 1;
+					}
+				}
+			}
+			results.push_back(result);
+		}
+	}
+
+	void CalculateNN(double &input, vector<int> &architecture, vector<double> &NNParms, int &output) {
+
+		int current_parm_index = 0;
+		vector<double> input_value, output_value;
+
+		double node_value;
+		int input_layer_width = 1;
+
+		input_value.push_back(input);
+		input_layer_width = input_value.size();
+
+		// for each layer
+		for (int i = 0; i < architecture.size(); i++) {
+
+			// for each node
+			input_layer_width = input_value.size();
+			for (int j = 0; j < architecture[i]; j++) {
+
+				// for each input
+				node_value = 0;
+				for (int k = 0; k < input_layer_width; k++) {
+					node_value += NNParms[current_parm_index] * input_value[k];
+					current_parm_index++;
+				}
+				node_value += NNParms[current_parm_index];
+				current_parm_index++;
+
+				//activation, leakyrelu with 0.03
+				if (node_value < 0) {
+					node_value *= 0.03;
+				}
+				output_value.push_back(node_value);
+			}
+
+			input_value = output_value;
+			output_value.clear();
+		}
+		output = input_value[0];
 	}
 
 	void PredictVectorWithBucketAssigner(vector<double> &queryset, vector<double> &results) {
@@ -439,7 +662,7 @@ class StageModel {
 			accu += relative_error;
 			accu_absolute += abs(predicted_range[i] - real_range_v[i]);
 			//cout << i << " accu: " << accu << endl;
-			cout << i << " r_err: " << relative_error << endl;
+			//cout << i << " r_err: " << relative_error << endl;
 		}
 		double avg_rel_err = accu / predicted_range.size();
 		cout << "average relative error: " << avg_rel_err << endl;
@@ -481,6 +704,28 @@ class StageModel {
 		}
 	}
 
+	// using NN as the first layer
+	void DumpParametersWithNN() {
+		arma::mat parms = first_layer_NN.Parameters();
+		NNParms.clear();
+		for (int i = 0; i < parms.n_rows; i++) {
+			NNParms.push_back(parms[i]);
+		}
+
+		stage_model_parameters.clear();
+		vector<pair<double, double>> layer;
+		for (int i = 0; i < stage_model.size(); i++) {
+			layer.clear();
+			for (int j = 0; j < stage_model[i].size(); j++) {
+				arma::vec paras = stage_model[i][j].Parameters();
+				//cout << i << " " << j << ": " << endl;
+				//paras.print();
+				layer.push_back(pair<double, double>(paras[1], paras[0])); // the first one is b, the second one of para is a!
+			}
+			stage_model_parameters.push_back(layer);
+		}
+	}
+
 	int TOTAL_SIZE = 1;
 	vector<vector<LinearRegression>> stage_model;
 	vector<vector<arma::mat>> stage_dataset;
@@ -489,6 +734,13 @@ class StageModel {
 	vector<vector<pair<double, double>>> stage_model_parameters; // first:a, second:b
 
 	vector<vector<arma::mat>> stage_queryset;
+
+	vector<int> replacement_btree_index; // -1 denotes not need for replacement
+	vector<stx::btree<double, int>> replaced_btree; // for error replacement.
+	int error_threshold;
+
+	mlpack::ann::FFN<mlpack::ann::MeanSquaredError<>> first_layer_NN;
+	vector<double> NNParms;
 
 	LinearRegression bucket_lr;
 	stx::btree_map<double, int> bucket_map;

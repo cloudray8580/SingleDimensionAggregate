@@ -1,9 +1,10 @@
 #pragma once
-#include "LearnIndexAggregate.h"
-
+//#include "LearnIndexAggregate.h"
+#include "mlpack/core.hpp"
 #include <string>
+#include "StageModel.h"
 #include <windows.h>
-//using namespace std;
+using namespace std;
 
 void GenerateRandomQuerySet(string filename_query) {
 	arma::mat dataset;
@@ -57,7 +58,7 @@ void CalculateRealSum(vector<double> &results) {
 
 }
 
-void CalculateRealCountWithScan2D(mat &dataset, mat &queryset, vector<int> &real_results) {
+void CalculateRealCountWithScan2D(arma::mat &dataset, arma::mat &queryset, vector<int> &real_results) {
 	arma::rowvec x = dataset.row(0); // x
 	arma::rowvec y = dataset.row(1); // y
 	vector<double> x_v, y_v;
@@ -143,9 +144,9 @@ void CalculateRealCountWithScan2D(mat &queryset, vector<int> &real_results) {
 	outfile.close();
 }
 
-void CalculateRealCountWithScan1D(mat &queryset, vector<int> &real_results) {
+void CalculateRealCountWithScan1D(mat &queryset, vector<int> &real_results, string file_path="C:/Users/Cloud/Desktop/LearnIndex/data/SortedSingleDimPOIs2.csv") {
 	mat dataset;
-	mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/SortedSingleDimPOIs2.csv", dataset);
+	mlpack::data::Load(file_path, dataset);
 	arma::rowvec x = dataset.row(0); // x
 	arma::rowvec y = dataset.row(1); // y
 	vector<double> x_v, y_v;
@@ -202,7 +203,6 @@ void TestApproximationWithDataset(string dataset_file="C:/Users/Cloud/Desktop/Le
 	vector<double> train_v, results_v;
 	StageModel::RowvecToVector(trainingset, train_v);
 
-
 	// try with generated Hilbert
 	stage_model.PredictVector(train_v, results_v);
 
@@ -241,6 +241,13 @@ void RowvecToVector(arma::mat& matrix, vector<double> &vec) {
 	}
 }
 
+void RowvecToVector(const arma::rowvec& matrix, vector<double> &vec) {
+	vec.clear();
+	for (int i = 0; i < matrix.n_cols; i++) {
+		vec.push_back(matrix[i]);
+	}
+}
+
 void RowvecToVector(arma::mat& matrix, vector<int> &vec) {
 	vec.clear();
 	for (int i = 0; i < matrix.n_cols; i++) {
@@ -248,21 +255,62 @@ void RowvecToVector(arma::mat& matrix, vector<int> &vec) {
 	}
 }
 
+void VectorToRowvec(arma::mat& rv, vector<double> &v) {
+	rv.clear();
+	rv.set_size(v.size());
+	int count = 0;
+	rv.imbue([&]() { return v[count++]; });
+}
+
+void VectorToRowvec(arma::mat& rv, vector<int> &v) {
+	rv.clear();
+	rv.set_size(v.size());
+	int count = 0;
+	rv.imbue([&]() { return v[count++]; });
+}
+
+double MeasureEstimatedRelativeError(double est, double err) {
+	double part1 = err / est;
+	double part2 = 2 * err * err / ((est - 2 * err)*est);
+	double relerr = 2*(part1 + part2);
+	//cout << relerr * 100 << "%" << endl;
+	return relerr;
+}
+
+double MeasureEstimatedRelativeError2(double est, double err) {
+	double relerr = 2*(err/(est-2*err));
+	//cout << relerr * 100 << "%" << endl;
+	return relerr;
+}
+
 void MeasureAccuracy(vector<int> &predicted_results, vector<int> &real_results) {
+	double abs_err = 0;
 	double relative_error;
 	double accu = 0;
 	double accu_absolute = 0;
+	double est_rel_err = 0;
 	int total_size = predicted_results.size();
 	for (int i = 0; i < total_size; i++) {
 		if (real_results[i] == 0) {
 			total_size--;
 			continue;
 		}
-		relative_error = abs(double(predicted_results[i] - real_results[i]) / real_results[i]);
+		abs_err = abs(predicted_results[i] - real_results[i]);
+		relative_error = abs(double(predicted_results[i] - real_results[i])) / real_results[i];
 		accu += relative_error;
 		accu_absolute += abs(predicted_results[i] - real_results[i]);
-		//cout << "relative error " << i << ": " << relative_error << endl;
+		est_rel_err = MeasureEstimatedRelativeError(predicted_results[i], 100);
+		if (relative_error >= est_rel_err) {
+			cout << "debug here : " << i << "  est rel err: " << est_rel_err << endl;
+		}
+		//cout << "relative error " << i << ": " << relative_error*100 <<  "\t estimated relative error:" << MeasureEstimatedRelativeError(predicted_results[i], 100)*100 << "%" << "\t estimated relative error 2:" << MeasureEstimatedRelativeError2(predicted_results[i], 100) * 100 << "%" << "\t true selectivity: " << real_results[i] << endl;
+		
+		/*cout << i << " absolute error: " << abs(predicted_results[i] - real_results[i]) << endl;
+		if (abs_err > 4000) {
+			cout << "debug here!" << endl;
+		}*/
 	}
 	cout << "average relative error: " << accu / total_size << endl;
 	cout << "average absolute error: " << accu_absolute / total_size << endl;
 }
+
