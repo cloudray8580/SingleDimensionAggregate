@@ -300,9 +300,9 @@ void MeasureAccuracy(vector<int> &predicted_results, vector<int> &real_results) 
 		accu += relative_error;
 		accu_absolute += abs(predicted_results[i] - real_results[i]);
 		est_rel_err = MeasureEstimatedRelativeError(predicted_results[i], 100);
-		if (relative_error >= est_rel_err) {
-			cout << "debug here : " << i << "  est rel err: " << est_rel_err << endl;
-		}
+		//if (relative_error >= est_rel_err) {
+			//cout << "debug here : " << i << "  est rel err: " << est_rel_err << endl;
+		//}
 		//cout << "relative error " << i << ": " << relative_error*100 <<  "\t estimated relative error:" << MeasureEstimatedRelativeError(predicted_results[i], 100)*100 << "%" << "\t estimated relative error 2:" << MeasureEstimatedRelativeError2(predicted_results[i], 100) * 100 << "%" << "\t true selectivity: " << real_results[i] << endl;
 		
 		/*cout << i << " absolute error: " << abs(predicted_results[i] - real_results[i]) << endl;

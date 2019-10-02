@@ -39,6 +39,76 @@ public:
 		}
 	}
 
+	void MyCplexSolverForMaxLossQuadraticOptimized(const vector<double> &key_v, const vector<double> &position_v, int lower_index, int higher_index, double &a, double &b, double &c, double &d, double &loss) {
+		IloEnv env;
+		IloModel model(env);
+		IloCplex cplex(model);
+		IloObjective obj(env);
+		IloNumVarArray vars(env);
+		IloRangeArray ranges(env);
+
+		//cplex.setOut(env.getNullStream());
+
+		cplex.setParam(IloCplex::NumericalEmphasis, CPX_ON);
+		//cplex.setParam(IloCplex::Param::Preprocessing::Presolve, false);
+		//cplex.setParam(IloCplex::Param::Advance, 0); // turnoff advanced start
+
+		// set variable type, IloNumVarArray starts from 0.
+		vars.add(IloNumVar(env, -INFINITY, INFINITY, ILOFLOAT)); // the weight, i.e., a for x^3
+		vars.add(IloNumVar(env, -INFINITY, INFINITY, ILOFLOAT)); // the weight, i.e., b for x^2
+		vars.add(IloNumVar(env, -INFINITY, INFINITY, ILOFLOAT));      // the weight, i.e., c for x
+		vars.add(IloNumVar(env, -INFINITY, INFINITY, ILOFLOAT));      // the bias, i.e., d
+		vars.add(IloNumVar(env, 0.0, INFINITY, ILOFLOAT)); // our target, the max loss
+
+		//cplex.setParam(IloCplex::RootAlg, IloCplex::Primal); // using simplex
+		//cplex.setParam(IloCplex::RootAlg, IloCplex::Dual); // using dual simplex
+		cplex.setParam(IloCplex::RootAlg, IloCplex::Barrier); // set optimizer used interior point method
+		//cplex.setParam(IloCplex::RootAlg, IloCplex::Sifting); // set optimizer used sifting
+		//cplex.setParam(IloCplex::RootAlg, IloCplex::Concurrent);
+
+		cplex.setParam(IloCplex::Param::Barrier::Limits::Growth, 1e6);
+
+		// declare objective
+		obj.setExpr(vars[4]);
+		obj.setSense(IloObjective::Minimize);
+		model.add(obj);
+
+		// add constraint for each record
+		for (int i = lower_index; i <= higher_index; i++) {
+			//model.add(vars[3] * key_v[i] * key_v[i] * key_v[i] + vars[2] * key_v[i] * key_v[i] + vars[1] * key_v[i] + vars[0] - position_v[i] <= vars[4]);
+			//model.add(vars[3] * key_v[i] * key_v[i] * key_v[i] + vars[2] * key_v[i] * key_v[i] + vars[1] * key_v[i] + vars[0] - position_v[i] >= -vars[4]);
+			model.add(vars[0] + vars[1] * key_v[i] + vars[2] * key_v[i] * key_v[i] + vars[3] * key_v[i] * key_v[i] * key_v[i] - position_v[i] <= vars[4]);
+			model.add(vars[0] + vars[1] * key_v[i] + vars[2] * key_v[i] * key_v[i] + vars[3] * key_v[i] * key_v[i] * key_v[i] - position_v[i] >= -vars[4]);
+		}
+
+		IloNum starttime_ = cplex.getTime();
+		cplex.solve();
+
+		IloNum endtime_ = cplex.getTime();
+		cplex.exportModel("C:/Users/Cloud/Desktop/range392_2.sav");
+		double target = cplex.getObjValue();
+		double slope1, slope2, slope3, bias;
+
+		slope1 = cplex.getValue(vars[0]);
+		slope2 = cplex.getValue(vars[1]);
+		slope3 = cplex.getValue(vars[2]);
+		bias = cplex.getValue(vars[3]);
+
+		//cout << "the variable a: " << cplex.getValue(vars[0]) << endl;
+		//cout << "the variable b: " << cplex.getValue(vars[1]) << endl;
+		//cout << "the variable max loss: " << cplex.getValue(vars[2]) << endl;
+		//cout << "cplex solve time: " << endtime_ - starttime_ << endl;
+
+		env.end();
+
+		//return target;
+		a = slope1;
+		b = slope2;
+		c = slope3;
+		d = bias;
+		loss = target;
+	}
+
 	// key_v still use single, current_trainingset should contains the quadratic term?
 	void ApproximateMaxLossLinearRegression(int origin_index, int shift_index, vector<double> &key_v, vector<double> &position_v, const arma::mat& current_trainingset, const arma::rowvec&current_response, double sampling_control, double error_threshold, double sampling_percentage, double &slope_a, double &slope_b, double &slope_c, double &intercept, double &maxloss) {
 
@@ -122,6 +192,8 @@ public:
 
 		// 3. extract a percent of them
 		int extracted_amount = segmented_pos.size() * sampling_percentage;
+
+		//int extracted_amount = 4;
 		vector<arma::u64> selected_index;
 		for (int i = 0; i < extracted_amount; i++) {
 			selected_index.push_back(segmented_pos[i].first);
@@ -156,7 +228,167 @@ public:
 		}
 		double adjusted_d = d + (max_pos_err - abs(max_neg_err)) / 2;
 		double maxerr = (max_pos_err - max_neg_err) / 2;
-		//cout << "max error for approx max loss:" << maxerr << endl;
+		cout << "representative points: " << selected_points_pos.n_cols << endl;
+		cout << "max error for approx max loss:" << maxerr << endl;
+		//cout << "a: " << a << " b: " << b << " c: " << c << " d: " << adjusted_d << endl;
+
+		slope_a = a;
+		slope_b = b;
+		slope_c = c;
+		intercept = adjusted_d;
+		maxloss = maxerr;
+
+		//auto t1 = chrono::steady_clock::now();
+		//cout << "Total Time in chrono: " << chrono::duration_cast<chrono::nanoseconds>(t1 - t0).count() << " ns" << endl;
+	}
+
+	void ApproximateMaxLossLinearRegression2(int origin_index, int shift_index, vector<double> &key_v, vector<double> &position_v, const arma::mat& current_trainingset, const arma::rowvec&current_response, double sampling_control, double error_threshold, int sampling_points, double &slope_a, double &slope_b, double &slope_c, double &intercept, double &maxloss) {
+
+		auto t0 = chrono::steady_clock::now();
+
+		// 1. first train an linear regression as the axes
+		LinearRegression lr(current_trainingset, current_response);
+
+		// 2. calculate the candidate max error points
+		arma::vec paras = lr.Parameters();
+		double a, b, c, d;
+		a = paras[1]; // a
+		b = paras[2]; // b
+		c = paras[3]; // c
+		d = paras[0]; // d
+		//cout << "a: " << a << " b: " << b << " c: " << c << endl;
+
+		// lower the LR to make the dataset above the line to ease the following calculation
+		double signed_error = 0, max_negative_error = 0;
+		double predicted_position;
+		for (int i = origin_index; i <= shift_index; i++) {
+			predicted_position = a * key_v[i] * key_v[i] * key_v[i] + b * key_v[i] * key_v[i] + c * key_v[i] + d;
+			signed_error = position_v[i] - predicted_position;
+			if (signed_error < max_negative_error) {
+				max_negative_error = signed_error;
+				//cout << i << " " << max_negative_error << " " << signed_error << endl;
+			}
+		}
+		d += max_negative_error;
+
+		double local_maximum = 0, local_minimum = shift_index - origin_index;
+		double pre_local_maximum = 0, pre_local_minimum = 0;
+		int local_maximum_pos = 0, local_minimum_pos = 0;
+		bool max_min_ready_flag = false, min_max_ready_flag = false;
+
+		// scan the dataset to find those significant turning points
+		int segment_size = shift_index - origin_index + 1;
+		double error = 0;
+		vector<pair<int, double>> segmented_pos; // record the segmentation points
+		for (int i = 0; i < segment_size; i++) {
+			predicted_position = a * key_v[i + origin_index] * key_v[i + origin_index] * key_v[i + origin_index] + b * key_v[i + origin_index] * key_v[i + origin_index] + c * key_v[i + origin_index] + d;
+			error = position_v[origin_index + i] - predicted_position;
+			if (i == 0) {
+				pre_local_maximum = error;
+				pre_local_minimum = error;
+			}
+			if (error > local_maximum) {
+				local_maximum = error;
+				local_maximum_pos = i;
+				if (!min_max_ready_flag && local_maximum - local_minimum > sampling_control * error_threshold) {
+					min_max_ready_flag = true;
+				}
+			}
+			// when a draw make the turn very sharp, record the local minimum point
+			if (max_min_ready_flag && error - local_minimum > sampling_control * error_threshold) {
+				segmented_pos.push_back(pair<int, double>(local_minimum_pos, pre_local_maximum - local_minimum));
+				max_min_ready_flag = false;
+				local_maximum = error;
+				local_maximum_pos = i;
+				pre_local_minimum = local_minimum;
+			}
+			if (error < local_minimum) {
+				local_minimum = error;
+				local_minimum_pos = i;
+				if (!max_min_ready_flag && local_maximum - local_minimum > sampling_control * error_threshold) {
+					max_min_ready_flag = true;
+				}
+			}
+			// when a drop make the turn very sharp, record the local maximum point
+			if (min_max_ready_flag && local_maximum - error > sampling_control * error_threshold) {
+				segmented_pos.push_back(pair<int, double>(local_maximum_pos, local_maximum - pre_local_minimum));
+				min_max_ready_flag = false;
+				local_minimum = error;
+				local_minimum_pos = i;
+				pre_local_maximum = local_maximum;
+			}
+		}
+
+		// the flunctunation is mono-increasing/decreasing or a wave is not high enough, then use equal witdth sampling.
+		if (segmented_pos.size() == 0) {
+			double domain = key_v[shift_index] - key_v[origin_index];
+			double step = domain / (sampling_points - 2+1);
+			int rep_count = 0;
+			for (int i = origin_index; i < shift_index; i++) {
+				if (key_v[i] >= key_v[origin_index]+step) {
+					cout << i << " " << origin_index << " " << shift_index << endl;
+					segmented_pos.push_back(pair<int, double>(i-origin_index,0));
+					step += step;
+					rep_count++;
+					if (rep_count >= sampling_points - 2) {
+						break;
+					}
+				}
+			}
+		}
+		else {
+			// sort these segmented position according to its scope		
+			std::sort(segmented_pos.begin(), segmented_pos.end(), cmp_magnitude3);
+		}
+		
+
+		// 3. extract a percent of them
+		//int extracted_amount = segmented_pos.size() * sampling_percentage;
+
+		int extracted_amount;
+		if (sampling_points - 2 > segmented_pos.size()) {
+			extracted_amount = segmented_pos.size();
+		}
+		else {
+			extracted_amount = sampling_points - 2;
+		}
+		//int extracted_amount = 4;
+		vector<arma::u64> selected_index;
+		for (int i = 0; i < extracted_amount; i++) {
+			selected_index.push_back(segmented_pos[i].first);
+		}
+		selected_index.push_back(0);
+		selected_index.push_back(segment_size - 1);
+		arma::uvec selected_index_arma(selected_index);
+
+		// 4. train an linear regression based on these points
+		arma::mat selected_points_key = current_trainingset.cols(selected_index_arma);
+		arma::rowvec selected_points_pos = current_response.cols(selected_index_arma);
+
+		// 5. adjust the bias term to balance the error
+		LinearRegression lr_maxloss(selected_points_key, selected_points_pos);
+		paras = lr_maxloss.Parameters();
+		a = paras[1]; // a
+		b = paras[2]; // b
+		c = paras[3]; // c
+		d = paras[0]; // d
+
+		// find the max positive error and the max negative error
+		double max_pos_err = 0, max_neg_err = 0;
+		for (int i = 0; i < segment_size; i++) {
+			predicted_position = a * key_v[i + origin_index] * key_v[i + origin_index] * key_v[i + origin_index] + b * key_v[i + origin_index] * key_v[i + origin_index] + c * key_v[i + origin_index] + d;
+			error = position_v[origin_index + i] - predicted_position;
+			if (error > max_pos_err) {
+				max_pos_err = error;
+			}
+			else if (error < max_neg_err) {
+				max_neg_err = error;
+			}
+		}
+		double adjusted_d = d + (max_pos_err - abs(max_neg_err)) / 2;
+		double maxerr = (max_pos_err - max_neg_err) / 2;
+		cout << "representative points: " << selected_points_pos.n_cols << endl;
+		cout << "max error for approx max loss:" << maxerr << endl;
 		//cout << "a: " << a << " b: " << b << " c: " << c << " d: " << adjusted_d << endl;
 
 		slope_a = a;
@@ -170,9 +402,10 @@ public:
 	}
 
 	// do not need to dump parameter for the bottom layer anymore
-	void TrainBottomLayerWithFastDetectForMaxLoss(const arma::mat& dataset, const arma::rowvec& labels, int step = 1000, double sampling_control = 2, double sampling_percentage = 0.1) {
+	void TrainBottomLayerWithFastDetectForMaxLoss(const arma::mat& dataset, const arma::rowvec& labels, int step = 1000, double sampling_control = 2, double sampling_points = 5) {
 		// Todo
 		int layer = this->level - 1;
+		int minimum_step = step;
 
 		vector<double> key_v, position_v;
 		RowvecToVector(dataset.row(2), key_v);
@@ -206,7 +439,9 @@ public:
 
 			//LinearRegression lr_poineer(current_trainingset, current_response);
 
-			ApproximateMaxLossLinearRegression(origin_index, shift_index, key_v, position_v, current_trainingset, current_response, sampling_control, threshold, sampling_percentage, a, b, c, d, current_absolute_accuracy);
+			//ApproximateMaxLossLinearRegression(origin_index, shift_index, key_v, position_v, current_trainingset, current_response, sampling_control, threshold, sampling_percentage, a, b, c, d, current_absolute_accuracy);
+			ApproximateMaxLossLinearRegression2(origin_index, shift_index, key_v, position_v, current_trainingset, current_response, sampling_control, threshold, sampling_points, a, b, c, d, current_absolute_accuracy);
+
 			model.clear();
 			model.push_back(a);
 			model.push_back(b);
@@ -226,6 +461,10 @@ public:
 					// update step
 					step = shift_index - origin_index;
 					step *= 2;
+
+					if (step < minimum_step) {
+						step = minimum_step;
+					}
 
 					// prepare for the next segment
 					origin_index = shift_index + 1; // verify whether + 1 is necessary here !
@@ -277,6 +516,9 @@ public:
 					// update the step
 					step = shift_index - origin_index;
 					step *= 2;
+					if (step < minimum_step) {
+						step = minimum_step;
+					}
 					// prepare for the next segment
 					origin_index = shift_index + 1; // verify whether + 1 is necessary here !
 					shift_index = origin_index + step;

@@ -79,7 +79,7 @@ public:
 		predictions.for_each([=](arma::mat::elem_type &val) {
 			val /= TOTAL_SIZE;
 			val *= target_layer_model_count_x;
-			val = int(val);
+			val = int(val);  
 			if (val < 0) {
 				val = 0;
 			}

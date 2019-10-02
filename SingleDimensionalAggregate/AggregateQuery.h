@@ -14,8 +14,679 @@
 #include "ROLLearnedIndex_quadratic.h"
 #include "ROLLearnedIndex_cubic.h"
 #include "ROLLearnedIndex_quartic.h"
+#include "ReverseMaxlossOptimal.h"
+#include <ilcplex/ilocplex.h>
 
 using namespace std;
+
+void TestX1(int lower, int upper);
+void TestX2(int lower, int upper);
+void TestX3(int lower, int upper);
+void TestX4(int lower, int upper);
+
+void TestLPHighestTerm() {
+
+	double loss;
+	vector<double> paras;
+	
+	mat dataset;
+	bool loaded = mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/SortedSingleDimPOIs2.csv", dataset);
+	arma::rowvec trainingset = dataset.row(0);
+	arma::rowvec responses = dataset.row(dataset.n_rows - 1);
+
+	vector<double> key_v, position_v;
+	RowvecToVector(trainingset, key_v);
+	RowvecToVector(responses, position_v);
+
+	ReverseMaxlossOptimal RMLO(100, 0.01, 3);
+	//RMLO.SolveMaxlossLP(key_v, position_v, 628762, 632418, paras, loss);
+	RMLO.SolveMaxlossLP(key_v, position_v, 1084084, 1089591, paras, loss);
+
+	cout.precision(11);
+	cout << "max loss: " << loss << endl;
+	for (int i = 0; i < paras.size(); i++) {
+		cout << paras[i] << " ";
+	}
+
+	cout << endl;
+	cout <<"============================="<< endl;
+
+	ROLLearnedIndex_cubic learnedindex(9, 1000, 100);
+	double a, b, c, d, e;
+	//RowvecToVector(trainingset, key_v);
+	//RowvecToVector(responses, position_v);
+	//learnedindex.MyCplexSolverForMaxLossQuadraticOptimized(key_v, position_v, 628762, 632418, a, b, c, d, e);
+	learnedindex.MyCplexSolverForMaxLossQuadraticOptimized(key_v, position_v, 1084084, 1089591, a, b, c, d, e);
+	//cout << d << "  " << c << "  " << b << "  " << a << "  " << e << endl;
+	cout << a << "  " << b << "  " << c << "  " << d << "  " << e << endl;
+
+	cout << "=============================" << endl;
+	cout << "import sav file and run again:" << endl;
+
+	IloEnv new_env2;
+	IloModel new_model2(new_env2);
+	IloCplex new_cplex2(new_model2);
+	//new_cplex2.setParam(IloCplex::RootAlg, IloCplex::Barrier);
+	new_cplex2.setParam(IloCplex::Param::Preprocessing::Presolve, false);
+	new_cplex2.setParam(IloCplex::Param::Advance, 0);
+
+	new_cplex2.importModel(new_model2, "C:/Users/Cloud/Desktop/range392_2.sav");
+	new_cplex2.solve();
+	cout << "max loss: " << new_cplex2.getObjValue() << endl;
+}
+
+void TestRMLO(int highest_term = 1) {
+	ReverseMaxlossOptimal RMLO(100, 0.01, highest_term);
+	mat dataset;
+
+	//bool loaded = mlpack::data::Load("C:/Users/Cloud/Desktop/LearnedAggregateData/SortedSingleDimPOIs2_SUM_2.csv", dataset); // this is for sum query
+
+	bool loaded = mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/SortedSingleDimPOIs2.csv", dataset); // the 1M tweet dataset
+	//bool loaded = mlpack::data::Load("C:/Users/Cloud/Desktop/LearnedAggregateData/MapData_10M_Sorted_Value.csv", dataset);
+	//bool loaded = mlpack::data::Load("C:/Users/Cloud/Desktop/LearnedAggregateData/MapData_30M_Sorted_Value.csv", dataset);
+	//bool loaded = mlpack::data::Load("C:/Users/Cloud/Desktop/LearnedAggregateData/MapData_100M_Sorted_Value.csv", dataset);
+
+	arma::rowvec trainingset = dataset.row(0);
+	arma::rowvec responses = dataset.row(dataset.n_rows - 1);
+
+	cout << "using highest term: " << highest_term << endl;
+
+	auto t00 = chrono::steady_clock::now();
+	RMLO.SegmentOnTrainMaxLossModel(trainingset, responses);
+	auto t11 = chrono::steady_clock::now();
+	cout << "Construction time in chrono: " << chrono::duration_cast<chrono::nanoseconds>(t11 - t00).count() << " in ns    " << chrono::duration_cast<chrono::nanoseconds>(t11 - t00).count()/(1000*1000*1000) << "in s" << endl;
+
+	RMLO.BuildNonLeafLayerWithBtree(); // btree
+
+	vector<double> trainingset_v, responses_v;
+	RowvecToVector(trainingset, trainingset_v);
+	RowvecToVector(responses, responses_v);
+	//stage_model_bottom_up.SelfChecking(trainingset_v, responses_v);
+
+	//cout.precision(11);
+	/*cout << "dataset_range[i].first" << " " << "dataset_range[i].second" << " " << "parameters[i].first" << " " << "parameters[i].second" << " " << "y2" << endl;
+	for (int i = 0; i < stage_model_bottom_up.stage_model_parameter[8].size(); i++) {
+		cout << stage_model_bottom_up.dataset_range[8][i].first << " " << stage_model_bottom_up.dataset_range[8][i].second << " " << stage_model_bottom_up.stage_model_parameter[8][i][0] << " " << stage_model_bottom_up.stage_model_parameter[8][i][1] << "  y1:" << stage_model_bottom_up.dataset_range[8][i].first * stage_model_bottom_up.stage_model_parameter[8][i][0] + stage_model_bottom_up.stage_model_parameter[8][i][1] << "  y2: " << stage_model_bottom_up.dataset_range[8][i].second * stage_model_bottom_up.stage_model_parameter[8][i][0] + stage_model_bottom_up.stage_model_parameter[8][i][1] << endl;
+	}*/
+
+	mat queryset;
+	bool loaded2 = mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/SortedSingleDimQuery2.csv", queryset);
+	//bool loaded2 = mlpack::data::Load("C:/Users/Cloud/Desktop/LearnedAggregateData/MapData_10M_Query_1D.csv", queryset);
+	//bool loaded2 = mlpack::data::Load("C:/Users/Cloud/Desktop/LearnedAggregateData/MapData_30M_Query_1D.csv", queryset);
+
+	arma::rowvec query_x_low = queryset.row(0);
+	arma::rowvec query_x_up = queryset.row(1);
+
+	vector<double> queryset_x_up_v, queryset_x_low_v;
+	RowvecToVector(query_x_up, queryset_x_up_v);
+	RowvecToVector(query_x_low, queryset_x_low_v);
+
+	vector<int> predicted_results_x_up, predicted_results_x_low, predicted_results, real_results;
+
+	auto t0 = chrono::steady_clock::now();
+
+	RMLO.PredictWithStxBtree(queryset_x_up_v, predicted_results_x_up);
+	RMLO.PredictWithStxBtree(queryset_x_low_v, predicted_results_x_low);
+
+	double t_abs = RMLO.t_abs;
+	double t_rel = RMLO.t_rel;
+	int count_over = 0, count_negative = 0;
+	for (int i = 0; i < predicted_results_x_up.size(); i++) {
+		predicted_results.push_back(predicted_results_x_up[i] - predicted_results_x_low[i]);
+
+		// analysis estimated maximum relative error:
+		double max_err_rel = (2 * t_abs) / (predicted_results[i] - 2 * t_abs);
+		if (max_err_rel > t_rel) {
+			count_over++;
+		}
+		else if (max_err_rel < 0) {
+			count_negative++;
+		}
+		//cout << "maximum relative error: " << max_err_rel * 100 << "%" << endl;
+	}
+
+	auto t1 = chrono::steady_clock::now();
+
+	double treeparas = RMLO.bottom_layer_index.CountParametersPrimary();
+	double treesize = treeparas * 8;
+	double modelsize = RMLO.dataset_range.size() * 8 * (3 + RMLO.highest_term);
+	double totalsize = treesize + modelsize;
+
+	cout << "Total Time in chrono: " << chrono::duration_cast<chrono::nanoseconds>(t1 - t0).count() << " ns" << endl;
+	cout << "Average Time in chrono: " << chrono::duration_cast<chrono::nanoseconds>(t1 - t0).count() / (queryset.size() / queryset.n_rows) << " ns" << endl;
+	cout << "bottom model count: " << RMLO.dataset_range.size() << endl;
+	cout << "Total nodes in btree index: " << RMLO.bottom_layer_index.CountNodesPrimary() << endl;
+	cout << "Total parameters in btree index: " << treeparas << endl;
+	cout << "Btree size (Bytes): " << treesize << endl;
+	cout << "Model size (Bytes): " << modelsize << endl;
+	cout << "Total structure size (Bytes): " << totalsize << "in Bytes    " << totalsize / 1024 << " in KB    " << totalsize / (1024 * 1024) << " in MB" << endl;
+	cout << "over threshold relative error: " << count_over << "   negative relative error: " << count_negative << endl;
+	cout << "hit probability: " << 1000 - count_over - count_negative << " / 1000" << endl;
+
+	// save results to file
+	ofstream outfile;
+	outfile.open("C:/Users/Cloud/Desktop/LearnIndex/data/Sorted1DimResults_LEARN.csv");
+	for (int i = 0; i < predicted_results.size(); i++) {
+		outfile << predicted_results[i] << endl;
+	}
+	outfile.close();
+
+	//CalculateRealCountWithScan1D(queryset, real_results, "C:/Users/Cloud/Desktop/LearnedAggregateData/MapData_30M_Sorted_Value.csv");
+	CalculateRealCountWithScan1D(queryset, real_results);
+	MeasureAccuracy(predicted_results, real_results); // need to adjust the error threshold by hand!!!!
+	cout << "===============================================" << endl;
+	system("pause");
+}
+
+void TestRMLOHighestTerm() {
+	for (int i = 0; i <= 10; i++) {
+		TestRMLO(i);
+	}
+	system("pause");
+}
+
+int inline MyBinarySearch(vector<double> &data, double key) {
+	int TOTAL_SIZE = data.size();
+	int low = 0, high = TOTAL_SIZE, middle;
+	while (high-low>1) {
+		middle = (low + high) / 2;
+		if (data[middle] > key) {
+			high = middle;
+		}
+		else if (data[middle] < key) {
+			low = middle;
+		}
+		else {
+			break;
+		}
+	}
+	return middle;
+}
+
+void TestBinarySearch() {
+	mat dataset;
+	//bool loaded = mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/SortedSingleDimPOIs2.csv", dataset);
+	//bool loaded = mlpack::data::Load("C:/Users/Cloud/Desktop/LearnedAggregateData/MapData_10M_Sorted_Value.csv", dataset);
+	//bool loaded = mlpack::data::Load("C:/Users/Cloud/Desktop/LearnedAggregateData/MapData_30M_Sorted_Value.csv", dataset);
+	bool loaded = mlpack::data::Load("C:/Users/Cloud/Desktop/LearnedAggregateData/MapData_100M_Sorted_Value.csv", dataset);
+
+	arma::rowvec trainingset = dataset.row(0);
+	arma::rowvec responses = dataset.row(dataset.n_rows - 1);
+
+	vector<double> trainingset_v, responses_v;
+
+	RowvecToVector(trainingset, trainingset_v);
+	RowvecToVector(responses, responses_v);
+
+	mat queryset;
+	//bool loaded2 = mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/SortedSingleDimQuery2.csv", queryset);
+	//bool loaded2 = mlpack::data::Load("C:/Users/Cloud/Desktop/LearnedAggregateData/MapData_10M_Query_1D.csv", queryset);
+	bool loaded2 = mlpack::data::Load("C:/Users/Cloud/Desktop/LearnedAggregateData/MapData_30M_Query_1D.csv", queryset);
+
+	arma::rowvec query_x_low = queryset.row(0);
+	arma::rowvec query_x_up = queryset.row(1);
+
+	vector<double> queryset_x_up_v, queryset_x_low_v;
+	RowvecToVector(query_x_up, queryset_x_up_v);
+	RowvecToVector(query_x_low, queryset_x_low_v);
+
+	vector<int> predicted_results_x_up, predicted_results_x_low, predicted_results, real_results;
+
+	auto t0 = chrono::steady_clock::now();
+
+	// using binary search
+	int pos;
+	for (int i = 0; i < queryset_x_up_v.size(); i++) {
+		pos = MyBinarySearch(trainingset_v, queryset_x_up_v[i]);
+		predicted_results_x_up.push_back(pos);
+		pos = MyBinarySearch(trainingset_v, queryset_x_low_v[i]);
+		predicted_results_x_low.push_back(pos);
+	}
+
+	for (int i = 0; i < predicted_results_x_up.size(); i++) {
+		predicted_results.push_back(predicted_results_x_up[i] - predicted_results_x_low[i]);
+	}
+
+	auto t1 = chrono::steady_clock::now();
+	cout << "Total Time in chrono: " << chrono::duration_cast<chrono::nanoseconds>(t1 - t0).count() << " ns" << endl;
+	cout << "Average Time in chrono: " << chrono::duration_cast<chrono::nanoseconds>(t1 - t0).count() / (queryset.size() / queryset.n_rows) << " ns" << endl;
+}
+
+void MyCplexSolverForMaxLoss(const arma::mat& current_trainingset, const arma::rowvec&current_response, double &a, double &b, double &loss) {
+	IloEnv env;
+	IloModel model(env);
+	IloCplex cplex(model);
+	IloObjective obj(env);
+	IloNumVarArray vars(env);
+	IloRangeArray ranges(env);
+
+	cplex.setOut(env.getNullStream());
+
+	// set variable type, IloNumVarArray starts from 0.
+	vars.add(IloNumVar(env, 0.0, INFINITY, ILOFLOAT)); // the weight, i.e., a
+	vars.add(IloNumVar(env, -INFINITY, INFINITY, ILOFLOAT));      // the bias, i.e., b
+	vars.add(IloNumVar(env, 0.0, INFINITY, ILOFLOAT)); // our target, the max loss
+
+	cplex.setParam(IloCplex::RootAlg, IloCplex::Barrier); // set optimizer used interior point method
+	//cplex.setParam(IloCplex::RootAlg, IloCplex::Sifting); // set optimizer used interior point method
+
+	// declare objective
+	obj.setExpr(vars[2]);
+	obj.setSense(IloObjective::Minimize);
+	model.add(obj);
+
+
+	// add constraint for each record
+	for (int i = 0; i < current_trainingset.size(); i++) {
+		model.add(vars[0] * current_trainingset[i] + vars[1] - current_response[i] <= vars[2]);
+		model.add(vars[0] * current_trainingset[i] + vars[1] - current_response[i] >= -vars[2]);
+	}
+
+	IloNum starttime_ = cplex.getTime();
+	cplex.solve();
+	/*try {
+		cplex.solve();
+	}
+	catch (IloException &e) {
+		std::cerr << "IloException: " << e << endl;
+	}
+	catch (std::exception &e) {
+		std::cerr << "standard exception: " << e.what() << endl;
+	}
+	catch (...) {
+		std::cerr << "some other exception: " << endl;
+	}*/
+
+	IloNum endtime_ = cplex.getTime();
+	double target = cplex.getObjValue();
+	double slope, bias;
+
+	slope = cplex.getValue(vars[0]);
+	bias = cplex.getValue(vars[1]);
+
+	//cout << "the variable a: " << cplex.getValue(vars[0]) << endl;
+	//cout << "the variable b: " << cplex.getValue(vars[1]) << endl;
+	//cout << "the variable max loss: " << cplex.getValue(vars[2]) << endl;
+	//cout << "cplex solve time: " << endtime_ - starttime_ << endl;
+
+	env.end();
+
+	//return target;
+	a = slope;
+	b = bias;
+	loss = target;
+}
+
+void TestEqualDepthSegmentation() {
+	mat dataset;
+	bool loaded = mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/SortedSingleDimPOIs2.csv", dataset);
+	arma::rowvec trainingset = dataset.row(0);
+	arma::rowvec labels = dataset.row(dataset.n_rows - 1);
+
+	int TOTAL_SIZE = trainingset.size();
+
+	//cout << "domain_min: " << domain_min << "  domain_max: " << domain_max << endl;
+
+	double abs_err = 10000;
+
+	// try different number of segments
+	int n_segments = 1;
+	while (true) {
+		cout << "current segment size: " << n_segments << endl;
+		bool all_success = true;
+		int segment_step = TOTAL_SIZE / n_segments;
+		int sub_segment_low = 0;
+		int sub_segment_high = sub_segment_low;
+
+		for (int i = 0; i < n_segments; i++) {
+
+			sub_segment_low = sub_segment_high;
+			sub_segment_high = sub_segment_low + segment_step;
+			if (sub_segment_high >= TOTAL_SIZE) {
+				sub_segment_high = TOTAL_SIZE - 1;
+			}
+
+			// determint the segment data
+			arma::rowvec sub_trainingset = trainingset.cols(sub_segment_low, sub_segment_high);
+			arma::rowvec sub_labels = labels.cols(sub_segment_low, sub_segment_high);
+
+			// cal linear programming solver
+			double a, b, loss;
+			MyCplexSolverForMaxLoss(sub_trainingset, sub_labels, a, b, loss);
+
+			if (loss > abs_err) {
+				all_success = false;
+				break;
+			}
+		}
+
+		if (all_success) {
+			break;
+		}
+		else {
+			n_segments += 1;
+		}
+	}
+}
+
+void TestEqualWidthSegmentation() {
+	mat dataset;
+	bool loaded = mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/SortedSingleDimPOIs2.csv", dataset);
+	arma::rowvec trainingset = dataset.row(0);
+	arma::rowvec labels = dataset.row(dataset.n_rows-1);
+	int domain_min_index = trainingset.index_min();
+	int domain_max_index = trainingset.index_max();
+	double domain_min = trainingset[domain_min_index];
+	double domain_max = trainingset[domain_max_index];
+
+	//cout << "domain_min: " << domain_min << "  domain_max: " << domain_max << endl;
+
+	double abs_err = 100000;
+
+	// try different number of segments
+	int n_segments = 1 ;
+	while (true) {
+		cout << "current segment size: " << n_segments << endl;
+		bool all_success = true;
+		double segment_step = (domain_max - domain_min) / n_segments;
+		double sub_segment_min = domain_min;
+		double sub_segment_max = sub_segment_min;
+
+		for (int i = 0; i < n_segments; i++) {
+
+			sub_segment_min = sub_segment_max;
+			sub_segment_max = sub_segment_min + segment_step;
+
+			// determint the segment data
+			uvec seg_index = find(trainingset >= sub_segment_min && trainingset < sub_segment_max);
+			cout << "segment.size: " << seg_index.size() << endl;
+			arma::rowvec sub_trainingset = trainingset.cols(seg_index);
+			arma::rowvec sub_labels = labels.cols(seg_index);
+
+			if (sub_trainingset.size() == 0) {
+				continue;
+			}
+
+			// cal linear programming solver
+			double a, b, loss;
+			MyCplexSolverForMaxLoss(sub_trainingset, sub_labels, a, b, loss);
+
+			if (loss > abs_err) {
+				all_success = false;
+				break;
+			}
+		}
+
+		if (all_success) {
+			break;
+		}
+		else {
+			n_segments += 1;
+		}
+	}
+}
+
+void TestCplex() {
+
+	StageModelBottomUp learnedindex(9, 1000, 100); // level, step, error
+
+	mat dataset_mse;
+	bool loaded = mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/SortedSingleDimPOIs2.csv", dataset_mse);
+	LinearRegression lr(dataset_mse.row(0), dataset_mse.row(dataset_mse.n_rows-1));
+	arma::vec paras = lr.Parameters();
+	double a_mse, b_mse;
+	a_mse = paras[1]; // a
+	b_mse = paras[0]; // b
+	cout << "a mse: " << a_mse << "  b mse: " << b_mse << endl;
+
+	arma::mat dataset;
+	dataset.load("C:/Users/Cloud/Desktop/LearnIndex/data/SortedSingleDimPOIs2.csv");
+
+	arma::mat trainingset = dataset.col(0);
+	arma::mat responses = dataset.col(dataset.n_cols - 1);
+
+	cout << dataset.n_cols << " " << dataset.n_rows << endl;
+	//cout << trainingset.size() << endl;
+
+	//trainingset = trainingset.cols(0, 1000);
+	//responses = responses.cols(0, 1000);
+
+	vector<double> key_v, position_v;
+
+	//trainingset.size()
+	for (int i = 0; i < trainingset.size(); i++) {
+		key_v.push_back(trainingset[i]);
+		position_v.push_back(responses[i]);
+	}
+
+	//RowvecToVector(trainingset, key_v);
+	//RowvecToVector(responses, position_v);
+
+	double a = 1, b = 1, current_absolute_accuracy = 0;
+
+	learnedindex.MyCplexSolverForMaxLoss(key_v, position_v, a, b, current_absolute_accuracy);
+}
+
+void MeasureTimeWithoutPow() {
+	mat queryset1, queryset2, queryset3;
+	bool loaded1 = mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/SortedSingleDimQuery2.csv", queryset1);
+	//bool loaded2 = mlpack::data::Load("C:/Users/Cloud/Desktop/LearnedAggregateData/MapData_10M_Query_1D.csv", queryset2);
+	//bool loaded3 = mlpack::data::Load("C:/Users/Cloud/Desktop/LearnedAggregateData/MapData_30M_Query_1D.csv", queryset3);
+
+	arma::rowvec query_x_low = queryset1.row(0);
+	arma::rowvec query_x_up = queryset1.row(1);
+
+	vector<double> queryset_x_up_v, queryset_x_low_v;
+	RowvecToVector(query_x_up, queryset_x_up_v);
+	RowvecToVector(query_x_low, queryset_x_low_v);
+
+	double x, x2, x3, x4;
+	double a1 = 1.1, a2 = 2.2, a3 = 3.3, a4 = 4.4, b = 5.5;
+	double result;
+	vector<double> results;
+
+
+	for (int i = 0; i < queryset_x_low_v.size(); i++) {
+		x = queryset_x_low_v[i];
+		result = a1 * x + b;
+		results.push_back(result);
+		result = a1 * x + b;
+		results.push_back(result);
+	}
+	results.clear();
+
+
+	//query_x_low = queryset2.row(0);
+	//query_x_up = queryset2.row(1);
+	//queryset_x_up_v, queryset_x_low_v;
+	//RowvecToVector(query_x_up, queryset_x_up_v);
+	//RowvecToVector(query_x_low, queryset_x_low_v);
+
+	auto t0 = chrono::steady_clock::now();
+
+	for (int i = 0; i < queryset_x_low_v.size(); i++) {
+		x = queryset_x_low_v[i];
+		result = a1 * x + b;
+		results.push_back(result);
+		x = queryset_x_up_v[i];
+		result = a1 * x + b;
+		results.push_back(result);
+	}
+
+	auto t1 = chrono::steady_clock::now();
+	cout << "total time in chrono: " << chrono::duration_cast<chrono::nanoseconds>(t1 - t0).count(  ) << " ns" << endl;
+	cout << "average time in chrono: " << chrono::duration_cast<chrono::nanoseconds>(t1 - t0).count() / (queryset1.size() / queryset1.n_rows) << " ns" << endl;
+	results.clear();
+
+	//query_x_low = queryset3.row(0);
+	//query_x_up = queryset3.row(1);
+	//queryset_x_up_v, queryset_x_low_v;
+	//RowvecToVector(query_x_up, queryset_x_up_v);
+	//RowvecToVector(query_x_low, queryset_x_low_v);
+
+	t0 = chrono::steady_clock::now();
+
+	for (int i = 0; i < queryset_x_low_v.size(); i++) {
+		x = queryset_x_low_v[i];
+		result = a1 * x + a2 * x * x + b;
+		results.push_back(result);
+		x = queryset_x_up_v[i];
+		result = a1 * x + a2 * x * x + b;
+		results.push_back(result);
+	}
+
+	t1 = chrono::steady_clock::now();
+	cout << "total time in chrono: " << chrono::duration_cast<chrono::nanoseconds>(t1 - t0).count() << " ns" << endl;
+	cout << "average time in chrono: " << chrono::duration_cast<chrono::nanoseconds>(t1 - t0).count() / (queryset1.size() / queryset1.n_rows) << " ns" << endl;
+	results.clear();
+
+	//query_x_low = queryset1.row(0);
+	//query_x_up = queryset1.row(1);
+	//queryset_x_up_v, queryset_x_low_v;
+	//RowvecToVector(query_x_up, queryset_x_up_v);
+	//RowvecToVector(query_x_low, queryset_x_low_v);
+
+	t0 = chrono::steady_clock::now();
+
+	for (int i = 0; i < queryset_x_low_v.size(); i++) {
+		x = queryset_x_low_v[i];
+		result = a1 * x + a2 * x * x + a3 * x * x * x + b;
+		results.push_back(result);
+		x = queryset_x_up_v[i];
+		result = a1 * x + a2 * x * x + a3 * x * x * x + b;
+		results.push_back(result);
+	}
+
+	t1 = chrono::steady_clock::now();
+	cout << "Total Time in chrono: " << chrono::duration_cast<chrono::nanoseconds>(t1 - t0).count() << " ns" << endl;
+	cout << "Average Time in chrono: " << chrono::duration_cast<chrono::nanoseconds>(t1 - t0).count() / (queryset1.size() / queryset1.n_rows) << " ns" << endl;
+	results.clear();
+	t0 = chrono::steady_clock::now();
+
+	for (int i = 0; i < queryset_x_low_v.size(); i++) {
+		x = queryset_x_low_v[i];
+		result = a1 * x + a2 * x * x + a3 * x * x * x + a3 * x * x * x * x + b;
+		results.push_back(result);
+		x = queryset_x_up_v[i];
+		result = a1 * x + a2 * x * x + a3 * x * x * x + a3 * x * x * x * x + b;
+		results.push_back(result);
+	}
+
+	t1 = chrono::steady_clock::now();
+	cout << "Total Time in chrono: " << chrono::duration_cast<chrono::nanoseconds>(t1 - t0).count() << " ns" << endl;
+	cout << "Average Time in chrono: " << chrono::duration_cast<chrono::nanoseconds>(t1 - t0).count() / (queryset1.size() / queryset1.n_rows) << " ns" << endl;
+	results.clear();
+}
+
+void measuretime() {
+	mat queryset1, queryset2, queryset3;
+	bool loaded1 = mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/SortedSingleDimQuery2.csv", queryset1);
+	bool loaded2 = mlpack::data::Load("C:/Users/Cloud/Desktop/LearnedAggregateData/MapData_10M_Query_1D.csv", queryset2);
+	bool loaded3 = mlpack::data::Load("C:/Users/Cloud/Desktop/LearnedAggregateData/MapData_30M_Query_1D.csv", queryset3);
+
+	arma::rowvec query_x_low = queryset1.row(0);
+	arma::rowvec query_x_up = queryset1.row(1);
+
+	vector<double> queryset_x_up_v, queryset_x_low_v;
+	RowvecToVector(query_x_up, queryset_x_up_v);
+	RowvecToVector(query_x_low, queryset_x_low_v);
+
+	double x, x2, x3, x4;
+	double a1 = 1.1, a2 = 2.2, a3 = 3.3, a4 = 4.4, b = 5.5;
+	double result;
+	vector<double> results;
+
+
+	for (int i = 0; i < queryset_x_low_v.size(); i++) {
+		result = a1 * queryset_x_low_v[i] + b;
+		results.push_back(result);
+		result = a1 * queryset_x_up_v[i] + b;
+		results.push_back(result);
+	}
+	results.clear();
+
+
+	query_x_low = queryset2.row(0);
+	query_x_up = queryset2.row(1);
+	queryset_x_up_v, queryset_x_low_v;
+	RowvecToVector(query_x_up, queryset_x_up_v);
+	RowvecToVector(query_x_low, queryset_x_low_v);
+
+	auto t0 = chrono::steady_clock::now();
+
+	for (int i = 0; i < queryset_x_low_v.size(); i++) {
+		result = a1 * queryset_x_low_v[i] + b;
+		results.push_back(result);
+		result = a1 * queryset_x_up_v[i] + b;
+		results.push_back(result);
+	}
+
+	auto t1 = chrono::steady_clock::now();
+	cout << "total time in chrono: " << chrono::duration_cast<chrono::nanoseconds>(t1 - t0).count() << " ns" << endl;
+	cout << "average time in chrono: " << chrono::duration_cast<chrono::nanoseconds>(t1 - t0).count() / (queryset1.size() / queryset1.n_rows) << " ns" << endl;
+	results.clear();
+
+	query_x_low = queryset3.row(0);
+	query_x_up = queryset3.row(1);
+	queryset_x_up_v, queryset_x_low_v;
+	RowvecToVector(query_x_up, queryset_x_up_v);
+	RowvecToVector(query_x_low, queryset_x_low_v);
+
+	t0 = chrono::steady_clock::now();
+
+	for (int i = 0; i < queryset_x_low_v.size(); i++) {
+		result = a1 * queryset_x_low_v[i] + a2 * pow(queryset_x_low_v[i],2) +  b;
+		results.push_back(result);
+		result = a1 * queryset_x_up_v[i] + a2 * pow(queryset_x_up_v[i], 2) + b;
+		results.push_back(result);
+	}
+
+	t1 = chrono::steady_clock::now();
+	cout << "total time in chrono: " << chrono::duration_cast<chrono::nanoseconds>(t1 - t0).count() << " ns" << endl;
+	cout << "average time in chrono: " << chrono::duration_cast<chrono::nanoseconds>(t1 - t0).count() / (queryset1.size() / queryset1.n_rows) << " ns" << endl;
+	results.clear();
+
+	query_x_low = queryset1.row(0);
+	query_x_up = queryset1.row(1);
+	queryset_x_up_v, queryset_x_low_v;
+	RowvecToVector(query_x_up, queryset_x_up_v);
+	RowvecToVector(query_x_low, queryset_x_low_v);
+
+	t0 = chrono::steady_clock::now();
+
+	for (int i = 0; i < queryset_x_low_v.size(); i++) {
+		result = a1 * queryset_x_low_v[i] + a2 * pow(queryset_x_low_v[i], 2) + a3 * pow(queryset_x_low_v[i], 3) + b;
+		results.push_back(result);
+		result = a1 * queryset_x_up_v[i] + a2 * pow(queryset_x_up_v[i], 2) + a3 * pow(queryset_x_up_v[i], 3) + b;
+		results.push_back(result);
+	}
+
+	t1 = chrono::steady_clock::now();
+	cout << "Total Time in chrono: " << chrono::duration_cast<chrono::nanoseconds>(t1 - t0).count() << " ns" << endl;
+	cout << "Average Time in chrono: " << chrono::duration_cast<chrono::nanoseconds>(t1 - t0).count() / (queryset1.size() / queryset1.n_rows) << " ns" << endl;
+	results.clear();
+	t0 = chrono::steady_clock::now();
+
+	for (int i = 0; i < queryset_x_low_v.size(); i++) {
+		result = a1 * queryset_x_low_v[i] + a2 * pow(queryset_x_low_v[i], 2) + a3 *  pow(queryset_x_low_v[i], 3) + a3 * pow(queryset_x_low_v[i], 4) + b;
+		results.push_back(result);
+		result = a1 * queryset_x_up_v[i] + a2 * pow(queryset_x_up_v[i], 2) + a3 * pow(queryset_x_up_v[i], 3) + a3 * pow(queryset_x_up_v[i], 4) + b;
+		results.push_back(result);
+	}
+
+	t1 = chrono::steady_clock::now();
+	cout << "Total Time in chrono: " << chrono::duration_cast<chrono::nanoseconds>(t1 - t0).count() << " ns" << endl;
+	cout << "Average Time in chrono: " << chrono::duration_cast<chrono::nanoseconds>(t1 - t0).count() / (queryset1.size() / queryset1.n_rows) << " ns" << endl;
+	results.clear();
+}
+
+void TestX(int lower, int upper) {
+
+	TestX1(lower, upper);
+	TestX2(lower, upper);
+	TestX3(lower, upper);
+	TestX4(lower, upper);
+}
 
 void TestX4_Complete() {
 	ROLLearnedIndex_quartic learnedindex(9, 1000, 100000); // level, step, error
@@ -71,11 +742,13 @@ void TestX4_Complete() {
 	MeasureAccuracy(predicted_results, real_results);
 }
 
-void TestX4() {
+void TestX4(int lower = 0, int upper = 1000) {
 	ROLLearnedIndex_quartic learnedindex(9, 1000, 100); // level, step, error
 
 	mat dataset;
 	bool loaded = mlpack::data::Load("C:/Users/Cloud/Desktop/LearnedAggregateData/SortedSingleDimPOIs2_x4.csv", dataset);
+
+	dataset = dataset.cols(lower, upper);
 
 	arma::mat trainingset = dataset.rows(0, 3);
 	arma::rowvec responses = dataset.row(dataset.n_rows - 1);
@@ -90,7 +763,7 @@ void TestX4() {
 }
 
 void TestX3_Complete() {
-	ROLLearnedIndex_cubic learnedindex(9, 1000, 100000); // level, step, error
+	ROLLearnedIndex_cubic learnedindex(9, 1000, 100); // level, step, error
 
 	mat dataset;
 	bool loaded = mlpack::data::Load("C:/Users/Cloud/Desktop/LearnedAggregateData/SortedSingleDimPOIs2_x3.csv", dataset);
@@ -98,7 +771,7 @@ void TestX3_Complete() {
 	arma::mat trainingset = dataset.rows(0, 2);
 	arma::rowvec responses = dataset.row(dataset.n_rows - 1);
 
-	learnedindex.TrainBottomLayerWithFastDetectForMaxLoss(trainingset, responses, 200000, 2, 0.1);
+	learnedindex.TrainBottomLayerWithFastDetectForMaxLoss(trainingset, responses, 10000, 4, 10); // step , control, rep points
 	learnedindex.BuildNonLeafLayerWithBtree(); // btree
 
 
@@ -143,11 +816,13 @@ void TestX3_Complete() {
 	MeasureAccuracy(predicted_results, real_results);
 }
 
-void TestX3() {
+void TestX3(int lower = 0, int upper = 1000) {
 	ROLLearnedIndex_cubic learnedindex(9, 1000, 100); // level, step, error
 
 	mat dataset;
 	bool loaded = mlpack::data::Load("C:/Users/Cloud/Desktop/LearnedAggregateData/SortedSingleDimPOIs2_x3.csv", dataset);
+
+	dataset = dataset.cols(lower, upper);
 
 	arma::mat trainingset = dataset.rows(0, 2);
 	arma::rowvec responses = dataset.row(dataset.n_rows - 1);
@@ -161,11 +836,13 @@ void TestX3() {
 	learnedindex.ApproximateMaxLossLinearRegression(0, key_v.size()-1, key_v, position_v, trainingset, responses, 2, 100, 0.1, a, b, c, d, current_absolute_accuracy);
 }
 
-void TestX2() {
+void TestX2(int lower = 0, int upper = 1000) {
 	ROLLearnedIndex_quadratic learnedindex(9, 1000, 100); // level, step, error
 
 	mat dataset;
 	bool loaded = mlpack::data::Load("C:/Users/Cloud/Desktop/LearnedAggregateData/SortedSingleDimPOIs2_x2.csv", dataset);
+
+	dataset = dataset.cols(lower, upper);
 
 	arma::mat trainingset = dataset.rows(0, 1);
 	arma::rowvec responses = dataset.row(dataset.n_rows - 1);
@@ -179,16 +856,58 @@ void TestX2() {
 	learnedindex.ApproximateMaxLossLinearRegression(0, key_v.size() - 1, key_v, position_v, trainingset, responses, 2, 100, 0.1, a, b, c, current_absolute_accuracy);
 }
 
-void TestROLQuadratic() {
-	ROLLearnedIndex_quadratic learnedindex_quadratic(9, 1000, 100000); // level, step, error
+void TestX1(int lower = 0, int upper = 1000) {
+	StageModelBottomUp learnedindex(9, 1000, 100); // level, step, error
 
 	mat dataset;
 	bool loaded = mlpack::data::Load("C:/Users/Cloud/Desktop/LearnedAggregateData/SortedSingleDimPOIs2_x2.csv", dataset);
 
-	arma::mat trainingset = dataset.rows(0,1);
+	dataset = dataset.cols(lower, upper);
+
+	arma::mat trainingset = dataset.row(0);
 	arma::rowvec responses = dataset.row(dataset.n_rows - 1);
 
-	learnedindex_quadratic.TrainBottomLayerWithFastDetectForMaxLoss(trainingset, responses, 1000000, 0.5, 0.1);
+	//trainingset = trainingset.cols(0, 1000);
+	//responses = responses.cols(0, 1000);
+
+	vector<double> key_v, position_v;
+	RowvecToVector(trainingset, key_v);
+	RowvecToVector(responses, position_v);
+
+	double a, b, current_absolute_accuracy=0;
+
+	learnedindex.ApproximateMaxLossLinearRegression(0, key_v.size() - 1, key_v, position_v, trainingset, responses, 2, 10, 0.1, a, b, current_absolute_accuracy);
+}
+
+void TestROLQuadratic() {
+	ROLLearnedIndex_quadratic learnedindex_quadratic(9, 10000, 100); // level, step, error
+
+	mat dataset;
+	//bool loaded = mlpack::data::Load("C:/Users/Cloud/Desktop/LearnedAggregateData/SortedSingleDimPOIs2_SUM_2.csv", dataset); // this is for sum query
+	bool loaded = mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/SortedSingleDimPOIs2.csv", dataset); // the 1M tweet dataset
+	//bool loaded = mlpack::data::Load("C:/Users/Cloud/Desktop/LearnedAggregateData/MapData_10M_Sorted_Value.csv", dataset);
+	//bool loaded = mlpack::data::Load("C:/Users/Cloud/Desktop/LearnedAggregateData/MapData_30M_Sorted_Value.csv", dataset);
+	//bool loaded = mlpack::data::Load("C:/Users/Cloud/Desktop/LearnedAggregateData/MapData_100M_Sorted_Value.csv", dataset);
+	arma::mat trainingset = dataset.row(0);
+	arma::rowvec responses = dataset.row(dataset.n_rows - 1);
+
+
+	/*arma::rowvec trainingset = dataset.row(0);
+	arma::rowvec responses = dataset.row(dataset.n_rows - 1);
+	mat dataset;
+	bool loaded = mlpack::data::Load("C:/Users/Cloud/Desktop/LearnedAggregateData/SortedSingleDimPOIs2_x2.csv", dataset);
+	arma::mat trainingset = dataset.rows(0,1);
+	arma::rowvec responses = dataset.row(dataset.n_rows - 1);*/
+
+	//trainingset = trainingset.cols(0, 10000);
+	//responses = responses.cols(0, 10000);
+
+	auto t00 = chrono::steady_clock::now();
+	//learnedindex_quadratic.TrainBottomLayerWithFastDetectForMaxLoss(trainingset, responses, 1000, 2, 0.1);
+	learnedindex_quadratic.TrainBottomLayerWithSegmentOnTrainMaxLossOptimized(trainingset, responses);
+	auto t11 = chrono::steady_clock::now();
+	cout << "Construction Time in chrono: " << chrono::duration_cast<chrono::nanoseconds>(t11 - t00).count() << " ns" << endl;
+
 	learnedindex_quadratic.BuildNonLeafLayerWithBtree(); // btree
 
 	//learnedindex_quadratic.DumpParameter();
@@ -542,10 +1261,13 @@ void TestTimeLinearSegment() {
 }
 
 void TestStageModelBottomUpMaxLoss() {
-	StageModelBottomUp stage_model_bottom_up(9, 1000, 100000); // level, step, error
+	StageModelBottomUp stage_model_bottom_up(9, 1000, 100); // level, step, error
 
 	mat dataset;
-	bool loaded = mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/SortedSingleDimPOIs2.csv", dataset);
+
+	//bool loaded = mlpack::data::Load("C:/Users/Cloud/Desktop/LearnedAggregateData/SortedSingleDimPOIs2_SUM_2.csv", dataset); // this is for sum query
+
+	bool loaded = mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/SortedSingleDimPOIs2.csv", dataset); // the 1M tweet dataset
 	//bool loaded = mlpack::data::Load("C:/Users/Cloud/Desktop/LearnedAggregateData/MapData_10M_Sorted_Value.csv", dataset);
 	//bool loaded = mlpack::data::Load("C:/Users/Cloud/Desktop/LearnedAggregateData/MapData_30M_Sorted_Value.csv", dataset);
 	//bool loaded = mlpack::data::Load("C:/Users/Cloud/Desktop/LearnedAggregateData/MapData_100M_Sorted_Value.csv", dataset);
@@ -553,13 +1275,35 @@ void TestStageModelBottomUpMaxLoss() {
 	arma::rowvec trainingset = dataset.row(0);
 	arma::rowvec responses = dataset.row(dataset.n_rows - 1);
 
+	cout << trainingset.size() << endl;
+	//trainingset = trainingset.cols(0, 10000);
+	//responses = responses.cols(0, 10000);
 
-	stage_model_bottom_up.TrainBottomLayerWithFastDetectForMaxLoss(trainingset, responses,1000, 2, 0.1);// do not need to dump parameter
+	auto t00 = chrono::steady_clock::now();
+	//stage_model_bottom_up.TrainBottomLayerWithFastDetectForMaxLoss(trainingset, responses,1000, 2, 5);// do not need to dump parameter, step control, representative points
+	//stage_model_bottom_up.TrainBottomLayerWithSegmentOnTrainMaxLoss(trainingset, responses);// do not need to dump parameter, step control, representative points
+	stage_model_bottom_up.TrainBottomLayerWithSegmentOnTrainMaxLossOptimized(trainingset, responses); // faster, using LP
+	//stage_model_bottom_up.TrainBottomLayerWithSegmentOnTrainApproximateMaxLossOptimized(trainingset, responses); // faster, using Approximate max loss
+	auto t11 = chrono::steady_clock::now();
+	cout << "Total Time in chrono: " << chrono::duration_cast<chrono::nanoseconds>(t11 - t00).count() << " ns" << endl;
+
 	stage_model_bottom_up.BuildNonLeafLayerWithBtree(); // btree
 
+	vector<double> trainingset_v, responses_v;
+	RowvecToVector(trainingset, trainingset_v);
+	RowvecToVector(responses, responses_v);
+ 	//stage_model_bottom_up.SelfChecking(trainingset_v, responses_v);
+
+	cout.precision(11);
+	/*cout << "dataset_range[i].first" << " " << "dataset_range[i].second" << " " << "parameters[i].first" << " " << "parameters[i].second" << " " << "y2" << endl;
+	for (int i = 0; i < stage_model_bottom_up.stage_model_parameter[8].size(); i++) {
+		cout << stage_model_bottom_up.dataset_range[8][i].first << " " << stage_model_bottom_up.dataset_range[8][i].second << " " << stage_model_bottom_up.stage_model_parameter[8][i][0] << " " << stage_model_bottom_up.stage_model_parameter[8][i][1] << "  y1:" << stage_model_bottom_up.dataset_range[8][i].first * stage_model_bottom_up.stage_model_parameter[8][i][0] + stage_model_bottom_up.stage_model_parameter[8][i][1] << "  y2: " << stage_model_bottom_up.dataset_range[8][i].second * stage_model_bottom_up.stage_model_parameter[8][i][0] + stage_model_bottom_up.stage_model_parameter[8][i][1] << endl;
+	}*/
 
 	mat queryset;
 	bool loaded2 = mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/SortedSingleDimQuery2.csv", queryset);
+	//bool loaded2 = mlpack::data::Load("C:/Users/Cloud/Desktop/LearnedAggregateData/MapData_10M_Query_1D.csv", queryset);
+	//bool loaded2 = mlpack::data::Load("C:/Users/Cloud/Desktop/LearnedAggregateData/MapData_30M_Query_1D.csv", queryset);
 
 	arma::rowvec query_x_low = queryset.row(0);
 	arma::rowvec query_x_up = queryset.row(1);
@@ -575,11 +1319,26 @@ void TestStageModelBottomUpMaxLoss() {
 	stage_model_bottom_up.PredictWithStxBtree(queryset_x_up_v, predicted_results_x_up);
 	stage_model_bottom_up.PredictWithStxBtree(queryset_x_low_v, predicted_results_x_low);
 
+	double t_abs = stage_model_bottom_up.threshold;
+	int count_over = 0, count_negative = 0;
 	for (int i = 0; i < predicted_results_x_up.size(); i++) {
 		predicted_results.push_back(predicted_results_x_up[i] - predicted_results_x_low[i]);
+
+		// analysis estimated maximum relative error:
+		double max_err_rel = (2 * t_abs) / (predicted_results[i] - 2 * t_abs);
+		if (max_err_rel > 0.01) {
+			count_over++;
+		}
+		else if (max_err_rel < 0) {
+			count_negative++;
+		}
+		//cout << "maximum relative error: " << max_err_rel * 100 << "%" << endl;
 	}
 
 	auto t1 = chrono::steady_clock::now();
+
+	cout << "over threshold relative error: " << count_over << "   negative relative error: " << count_negative << endl;
+
 	cout << "Total Time in chrono: " << chrono::duration_cast<chrono::nanoseconds>(t1 - t0).count() << " ns" << endl;
 	cout << "Average Time in chrono: " << chrono::duration_cast<chrono::nanoseconds>(t1 - t0).count() / (queryset.size() / queryset.n_rows) << " ns" << endl;
 	cout << "bottom model count: " << stage_model_bottom_up.dataset_range[stage_model_bottom_up.level - 1].size() << endl;
@@ -594,7 +1353,7 @@ void TestStageModelBottomUpMaxLoss() {
 	}
 	outfile.close();
 
-	//CalculateRealCountWithScan1D(queryset, real_results, "C:/Users/Cloud/Desktop/LearnedAggregateData/MapData_100M_Sorted_Value.csv");
+	//CalculateRealCountWithScan1D(queryset, real_results, "C:/Users/Cloud/Desktop/LearnedAggregateData/MapData_30M_Sorted_Value.csv");
 	CalculateRealCountWithScan1D(queryset, real_results);
 	MeasureAccuracy(predicted_results, real_results); // need to adjust the error threshold by hand!!!!
 }
@@ -603,7 +1362,8 @@ void TestMaxLoss() {
 	StageModelBottomUp stage_model_bottom_up(9, 1000, 100); // level, step, error
 
 	mat dataset;
-	bool loaded = mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/SortedSingleDimPOIs2.csv", dataset);
+	//bool loaded = mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/SortedSingleDimPOIs2.csv", dataset);
+	bool loaded = mlpack::data::Load("C:/Users/Cloud/Desktop/LearnedAggregateData/SortedSingleDimPOIs2_SUM_2.csv", dataset); // this is for sum query
 	arma::rowvec trainingset = dataset.row(0);
 	arma::rowvec responses = dataset.row(dataset.n_rows - 1);
 
@@ -613,7 +1373,10 @@ void TestMaxLoss() {
 
 	double a, b, c;
 
-	stage_model_bottom_up.ApproximateMaxLossLinearRegression(0, key_v.size()-1, key_v, position_v, trainingset, responses, 2, 1000, 0.085, a,b,c);
+	//stage_model_bottom_up.ApproximateMaxLossLinearRegressionMultipass(0, key_v.size()-1, key_v, position_v, trainingset, responses, 2, 1000, 10, a,b,c, 5);
+
+	stage_model_bottom_up.MyCplexSolverForMaxLossOptimized(key_v, position_v, 11370, 11764, a, b, c);
+	cout << "slope: " << a << "  bias: " << b << "  max error: " << c << endl;
 }
 
 void TestLoadingNumpySaved() {
@@ -926,7 +1689,7 @@ void TestEntropyHist() {
 
 void TestDouglas() {
 
-	Douglas douglas(900);
+	Douglas douglas(10000);
 
 	mat dataset;
 	bool loaded = mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/SortedSingleDimPOIs2.csv", dataset);
@@ -934,6 +1697,12 @@ void TestDouglas() {
 	arma::rowvec responses = dataset.row(dataset.n_rows - 1);
 
 	douglas.BuildDouglas(trainingset, responses);
+
+	cout.precision(11);
+	cout << "dataset_range[i].first" << " " << "dataset_range[i].second" << " " << "parameters[i].first" << " " << "parameters[i].second" << " " << "y2" << endl;
+	for (int i = 0; i < douglas.parameters.size(); i++) {
+		cout << douglas.dataset_range[i].first << " " << douglas.dataset_range[i].second << " " << douglas.parameters[i].first << " " << douglas.parameters[i].second << " " <<(douglas.dataset_range[i].second - douglas.dataset_range[i].first)*douglas.parameters[i].first + douglas.parameters[i].second << endl;
+	}
 
 	mat queryset;
 	bool loaded2 = mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/SortedSingleDimQuery2.csv", queryset);
@@ -1176,13 +1945,27 @@ void TestAtree() {
 	ATree atree(100); // error threshold
 
 	mat dataset;
+
+	//bool loaded = mlpack::data::Load("C:/Users/Cloud/Desktop/LearnedAggregateData/SortedSingleDimPOIs2_SUM_2.csv", dataset); // this is for sum query
+
 	bool loaded = mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/SortedSingleDimPOIs2.csv", dataset);
 	//bool loaded = mlpack::data::Load("C:/Users/Cloud/Desktop/LearnedAggregateData/MapData_10M_Sorted_Value.csv", dataset);
+	//bool loaded = mlpack::data::Load("C:/Users/Cloud/Desktop/LearnedAggregateData/MapData_30M_Sorted_Value.csv", dataset);
 	//bool loaded = mlpack::data::Load("C:/Users/Cloud/Desktop/LearnedAggregateData/MapData_100M_Sorted_Value.csv", dataset);
 	arma::rowvec trainingset = dataset.row(0);
 	arma::rowvec responses = dataset.row(dataset.n_rows - 1);
 
+	auto t00 = chrono::steady_clock::now();
 	atree.TrainAtree(trainingset, responses);
+	auto t11 = chrono::steady_clock::now();
+	cout << "Total Time in chrono: " << chrono::duration_cast<chrono::nanoseconds>(t11 - t00).count() << " ns" << endl;
+
+
+	cout.precision(11);
+	/*cout << "dataset_range[i].first" << " " << "dataset_range[i].second" << " " << "parameters[i].first" << " " << "parameters[i].second" << " " << "y2" << endl;
+	for (int i = 0; i < atree.atree_parameters.size(); i++) {
+		cout << atree.dataset_range[i].first << " " << atree.dataset_range[i].second << " " << atree.atree_parameters[i][0] << " " << atree.atree_parameters[i][1] << " " << (atree.dataset_range[i].second - atree.dataset_range[i].first)* atree.atree_parameters[i][0] + atree.atree_parameters[i][1] << endl;
+	}*/
 	
 	mat queryset;
 	bool loaded2 = mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/SortedSingleDimQuery2.csv", queryset);
@@ -1197,16 +1980,31 @@ void TestAtree() {
 
 	auto t0 = chrono::steady_clock::now();
 
-	//atree.Predict(queryset_x_up_v, predicted_results_x_up);
-	//atree.Predict(queryset_x_low_v, predicted_results_x_low);
-	atree.PredictExact(queryset_x_up_v, predicted_results_x_up);
-	atree.PredictExact(queryset_x_low_v, predicted_results_x_low);
+	atree.Predict(queryset_x_up_v, predicted_results_x_up);
+	atree.Predict(queryset_x_low_v, predicted_results_x_low);
+	//atree.PredictExact(queryset_x_up_v, predicted_results_x_up);
+	//atree.PredictExact(queryset_x_low_v, predicted_results_x_low);
+
+	double t_abs = atree.error_threshold;
+	int count_over = 0, count_negative = 0;
 
 	for (int i = 0; i < predicted_results_x_up.size(); i++) {
 		predicted_results.push_back(predicted_results_x_up[i] - predicted_results_x_low[i]);
+
+		// analysis estimated maximum relative error:
+		double max_err_rel = (2 * t_abs) / (predicted_results[i] - 2 * t_abs);
+		if (max_err_rel > 0.01) {
+			count_over++;
+		}
+		else if (max_err_rel < 0) {
+			count_negative++;
+		}
+		//cout << "maximum relative error: " << max_err_rel * 100 << "%" << endl;
 	}
 
 	auto t1 = chrono::steady_clock::now();
+	cout << "over threshold relative error: " << count_over << "   negative relative error: " << count_negative << endl;
+
 	cout << "Total Time in chrono: " << chrono::duration_cast<chrono::nanoseconds>(t1 - t0).count() << " ns" << endl;
 	cout << "Average Time in chrono: " << chrono::duration_cast<chrono::nanoseconds>(t1 - t0).count() / (queryset.size() / queryset.n_rows) << " ns" << endl;
 	cout << "bottom model count: " << atree.dataset_range.size() << endl;

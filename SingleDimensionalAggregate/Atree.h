@@ -95,14 +95,22 @@ public:
 
 				dataset_range.push_back(pair<double, double>(key_v[cone_origin_index], key_v[cone_shift_index-1]));
 				current_slope = (position_v[cone_shift_index-1] - position_v[cone_origin_index]) / (key_v[cone_shift_index-1] - key_v[cone_origin_index]); // monotonous
-				atree_parameters.push_back(pair<double, double>(current_slope, position_v[cone_origin_index]));
-				cout << cone_origin_index << " " << cone_shift_index - 1 << " " << current_slope << " " << position_v[cone_origin_index] << endl;
+				//atree_parameters.push_back(pair<double, double>(current_slope, position_v[cone_origin_index]));
+				vector<double> paras;
+				paras.push_back(current_slope);
+				paras.push_back(position_v[cone_origin_index]);
+				atree_parameters.push_back(paras);
+				//cout << cone_origin_index << " " << cone_shift_index - 1 << " " << current_slope << " " << position_v[cone_origin_index] << endl;
 				cone_origin_index = cone_shift_index;
 			}
 			else {
 				dataset_range.push_back(pair<double, double>(key_v[cone_origin_index], key_v[cone_shift_index-1])); // exit loop as the border is met
 				current_slope = (position_v[cone_shift_index-1] - position_v[cone_origin_index]) / (key_v[cone_shift_index] - key_v[cone_origin_index]); // monotonous
-				atree_parameters.push_back(pair<double, double>(current_slope, position_v[cone_origin_index]));
+				//atree_parameters.push_back(pair<double, double>(current_slope, position_v[cone_origin_index]));
+				vector<double> paras;
+				paras.push_back(current_slope);
+				paras.push_back(position_v[cone_origin_index]);
+				atree_parameters.push_back(paras);
 				break; // all the data set has been scanned through
 			}
 		}
@@ -134,8 +142,10 @@ public:
 			}*/
 			model_index = iter->second;
 			//cout << "queryset[i]: " << queryset[i] << "  model index:" << model_index << endl;
-			a = atree_parameters[model_index].first;
-			b = atree_parameters[model_index].second;
+			//a = atree_parameters[model_index].first;
+			//b = atree_parameters[model_index].second;
+			a = atree_parameters[model_index][0];
+			b = atree_parameters[model_index][1];
 			//cout << a << " " << b << " " << model_index << endl;
 			result = a * (queryset[i] - dataset_range[model_index].first) + b;
 			results.push_back(result);
@@ -152,8 +162,10 @@ public:
 			iter = this->bottom_layer_index.lower_bound(queryset[i]); // bug for STXBtree when search -0.041 between -0.048 and 0.00055, results in the last element.
 			model_index = iter->second;
 			//cout << "queryset[i]: " << queryset[i] << "  model index:" << model_index << endl;
-			a = atree_parameters[model_index].first;
-			b = atree_parameters[model_index].second;
+			//a = atree_parameters[model_index].first;
+			//b = atree_parameters[model_index].second;
+			a = atree_parameters[model_index][0];
+			b = atree_parameters[model_index][0];
 			//cout << a << " " << b << " " << model_index << endl;
 			result = a * (queryset[i] - dataset_range[model_index].first) + b;
 
@@ -180,7 +192,9 @@ public:
 
 	vector<double> keys;
 	vector<pair<double, double>> dataset_range;
-	vector<pair<double, double>> atree_parameters; // first: slope, second:cone origin position
+	//vector<pair<double, double>> atree_parameters; // first: slope, second:cone origin position, I think this maybe a bit faster, but as ROL use vector as inner, then its unfair
+	vector<vector<double>> atree_parameters;
+
 	stx::btree<double, int> bottom_layer_index; // for btree index
 
 	int error_threshold; // denote the maximum prediction error

@@ -159,7 +159,7 @@ public:
 		}
 		double adjusted_e = e + (max_pos_err - abs(max_neg_err)) / 2;
 		double maxerr = (max_pos_err - max_neg_err) / 2;
-		//cout << "max error for approx max loss:" << maxerr << endl;
+		cout << "max error for approx max loss:" << maxerr << endl;
 		//cout << "a: " << a << " b: " << b << " c: " << c << " d: " << d << " e: " << adjusted_e << endl;
 
 		slope_a = a;
@@ -300,7 +300,7 @@ public:
 		bottom_layer_index.clear();
 		int layer = this->level - 1; // bottom layer
 		for (int i = 0; i < dataset_range[layer].size(); i++) {
-			bottom_layer_index.insert(pair<double, int>(dataset_range[layer][i].second, i));
+			bottom_layer_index.insert(pair<double, int>(dataset_range[layer][i].first, i));
 		}
 	}
 
@@ -317,7 +317,8 @@ public:
 			/*if (i == 0 || i==39 || i==63) {
 				cout << "debug here!" << endl;
 			}*/
-			iter = this->bottom_layer_index.lower_bound(queryset[i]);
+			iter = this->bottom_layer_index.upper_bound(queryset[i]);
+			iter--;
 			model_index = iter->second;
 			//cout << queryset[i] << " " << model_index << endl;
 
