@@ -49,16 +49,9 @@ public:
 
 		//cplex.setOut(env.getNullStream());
 
-		cplex.setParam(IloCplex::NumericalEmphasis, CPX_ON);
+		//cplex.setParam(IloCplex::NumericalEmphasis, CPX_ON);
 		//cplex.setParam(IloCplex::Param::Preprocessing::Presolve, false);
 		//cplex.setParam(IloCplex::Param::Advance, 0); // turnoff advanced start
-
-		// set variable type, IloNumVarArray starts from 0.
-		vars.add(IloNumVar(env, -INFINITY, INFINITY, ILOFLOAT)); // the weight, i.e., a for x^3
-		vars.add(IloNumVar(env, -INFINITY, INFINITY, ILOFLOAT)); // the weight, i.e., b for x^2
-		vars.add(IloNumVar(env, -INFINITY, INFINITY, ILOFLOAT));      // the weight, i.e., c for x
-		vars.add(IloNumVar(env, -INFINITY, INFINITY, ILOFLOAT));      // the bias, i.e., d
-		vars.add(IloNumVar(env, 0.0, INFINITY, ILOFLOAT)); // our target, the max loss
 
 		//cplex.setParam(IloCplex::RootAlg, IloCplex::Primal); // using simplex
 		//cplex.setParam(IloCplex::RootAlg, IloCplex::Dual); // using dual simplex
@@ -66,7 +59,19 @@ public:
 		//cplex.setParam(IloCplex::RootAlg, IloCplex::Sifting); // set optimizer used sifting
 		//cplex.setParam(IloCplex::RootAlg, IloCplex::Concurrent);
 
-		cplex.setParam(IloCplex::Param::Barrier::Limits::Growth, 1e6);
+		//cplex.setParam(IloCplex::Param::Barrier::Limits::Growth, 1e6);
+		//cplex.setParam(IloCplex::Param::Simplex::Tolerances::Feasibility, 1e-9);
+		//cplex.setParam(IloCplex::Param::Barrier::ConvergeTol, 1e-12);
+		//cplex.setParam(IloCplex::Param::Read::Scale, 1);
+		//cplex.setParam(IloCplex::Param::Simplex::Tolerances::Markowitz, 0.99999);
+		//cplex.setParam(IloCplex::Param::MIP::Tolerances::Integrality, 0.0);
+
+		// set variable type, IloNumVarArray starts from 0.
+		vars.add(IloNumVar(env, -INFINITY, INFINITY, ILOFLOAT)); // the weight, i.e., a for x^3
+		vars.add(IloNumVar(env, -INFINITY, INFINITY, ILOFLOAT)); // the weight, i.e., b for x^2
+		vars.add(IloNumVar(env, -INFINITY, INFINITY, ILOFLOAT));      // the weight, i.e., c for x
+		vars.add(IloNumVar(env, -INFINITY, INFINITY, ILOFLOAT));      // the bias, i.e., d
+		vars.add(IloNumVar(env, 0.0, INFINITY, ILOFLOAT)); // our target, the max loss
 
 		// declare objective
 		obj.setExpr(vars[4]);
@@ -80,6 +85,12 @@ public:
 			model.add(vars[0] + vars[1] * key_v[i] + vars[2] * key_v[i] * key_v[i] + vars[3] * key_v[i] * key_v[i] * key_v[i] - position_v[i] <= vars[4]);
 			model.add(vars[0] + vars[1] * key_v[i] + vars[2] * key_v[i] * key_v[i] + vars[3] * key_v[i] * key_v[i] * key_v[i] - position_v[i] >= -vars[4]);
 		}
+
+		//model.add(vars[0] == -35184.423534);
+		//model.add(vars[1] == 0);
+		//model.add(vars[2] == -39.736361438);
+		//model.add(vars[3] == 0.2569951189);
+		//model.add(vars[4] == 2.235143711e-06);
 
 		IloNum starttime_ = cplex.getTime();
 		cplex.solve();
@@ -98,6 +109,11 @@ public:
 		//cout << "the variable b: " << cplex.getValue(vars[1]) << endl;
 		//cout << "the variable max loss: " << cplex.getValue(vars[2]) << endl;
 		//cout << "cplex solve time: " << endtime_ - starttime_ << endl;
+
+		IloNum violation = cplex.getQuality(IloCplex::MaxPrimalInfeas);
+		cout << "cubic violation: " << violation << endl;
+		cout << "kappa: " << cplex.getQuality(IloCplex::Kappa) << endl;
+		//cout << "slack: " << cplex.getSlacks() << endl;
 
 		env.end();
 

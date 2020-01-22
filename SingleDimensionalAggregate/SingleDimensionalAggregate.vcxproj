@@ -149,9 +149,9 @@ xcopy /y "D:\mlpack3.0.4\mlpack-3.0.4\packages\OpenBLAS.0.2.14.1\lib\native\bin\
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>false</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;IL_STD;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <ConformanceMode>true</ConformanceMode>
+      <ConformanceMode>false</ConformanceMode>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>D:\boost_1_66_0;D:\mlpack3.0.4\armadillo-9.200.6\include;D:\mlpack3.0.4\mlpack-3.0.4\build\include;D:\stxbtree\stx-btree-0.9\include;D:\CPLEXAcademic\cplex\include;D:\CPLEXAcademic\concert\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>D:\boost_1_66_0;D:\mlpack3.0.4\armadillo-9.200.6\include;D:\mlpack3.0.4\mlpack-3.0.4\build\include;D:\stxbtree\stx-btree-0.9\include;D:\CPLEXAcademic2\cplex\include;D:\CPLEXAcademic2\concert\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -159,7 +159,7 @@ xcopy /y "D:\mlpack3.0.4\mlpack-3.0.4\packages\OpenBLAS.0.2.14.1\lib\native\bin\
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>D:\mlpack3.0.4\mlpack-3.0.4\build\Release\mlpack.lib;D:\boost_1_66_0\lib64-msvc-14.1\libboost_serialization-vc141-mt-gd-x64-1_66.lib;D:\boost_1_66_0\lib64-msvc-14.1\libboost_program_options-vc141-mt-gd-x64-1_66.lib;D:\boost_1_66_0\lib64-msvc-14.1\libboost_serialization-vc141-mt-x64-1_66.lib;D:\boost_1_66_0\lib64-msvc-14.1\libboost_program_options-vc141-mt-x64-1_66.lib;D:\mlpack3.0.4\mlpack-3.0.4\packages\OpenBLAS.0.2.14.1\lib\native\lib\x64\libopenblas.dll.a;cplex1290.lib;ilocplex.lib;concert.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>D:\CPLEXAcademic\cplex\lib\x64_windows_vs2017\stat_mda;D:\CPLEXAcademic\concert\lib\x64_windows_vs2017\stat_mda;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>D:\CPLEXAcademic2\cplex\lib\x64_windows_vs2017\stat_mda;D:\CPLEXAcademic2\concert\lib\x64_windows_vs2017\stat_mda;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
       <Command>xcopy /y "D:\mlpack3.0.4\mlpack-3.0.4\build\Release\mlpack.dll" $(OutDir)
@@ -175,21 +175,26 @@ xcopy /y "D:\mlpack3.0.4\mlpack-3.0.4\packages\OpenBLAS.0.2.14.1\lib\native\bin\
     <ClInclude Include="Hilbert.h" />
     <ClInclude Include="Histogram.h" />
     <ClInclude Include="LearnIndexAggregate.h" />
+    <ClInclude Include="MethodTesting.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="ReverseMaxlossOptimal.h" />
     <ClInclude Include="ROLLearnedIndex_cubic.h" />
     <ClInclude Include="ROLLearnedIndex_quadratic.h" />
     <ClInclude Include="ROLLearnedIndex_quartic.h" />
+    <ClInclude Include="RTree.h" />
     <ClInclude Include="StageModel.h" />
     <ClInclude Include="StageModel2D.h" />
     <ClInclude Include="StageModel2D_2.h" />
-    <ClInclude Include="StageModel2D_QuadDivide.h" />
+    <ClInclude Include="Maxloss2D_QuadDivide.h" />
     <ClInclude Include="StageModelBottomUp.h" />
     <ClInclude Include="Stx2D.h" />
     <ClInclude Include="STXBtreeAggregate.h" />
     <ClInclude Include="TestLibs.h" />
     <ClInclude Include="TestNN.h" />
     <ClInclude Include="Utils.h" />
+    <ClInclude Include="VLDBFinalExp1.h" />
+    <ClInclude Include="VLDBFinalExp2.h" />
+    <ClInclude Include="Wavlet.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">

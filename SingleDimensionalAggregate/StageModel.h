@@ -10,15 +10,18 @@
 //#include <mlpack/methods/ann/layer/layer.hpp>
 #include <mlpack/methods/ann/loss_functions/mean_squared_error.hpp>
 
+# include "Utils.h"
+
 using namespace mlpack::regression;
 using namespace std;
 
 class StageModel {
  public:
 	//todo: handle untrained model!
-	StageModel(const arma::mat& dataset, const arma::rowvec& labels, vector<int> &architecture, int type = 0, int error_threshold = 100) {
+	StageModel(const arma::mat& dataset, const arma::rowvec& labels, vector<int> &architecture, int type = 0, int error_threshold = 100, double Trel = 0.01) {
 		
 		this->error_threshold = error_threshold;
+		this->Trel = Trel;
 		
 		int TOTAL_SIZE;
 		switch (type) {
@@ -361,6 +364,125 @@ class StageModel {
 		}
 	}
 
+
+	// with refinement and absolute error threshold
+	QueryResult CountPrediction(vector<double> &queryset_low, vector<double> &queryset_up, vector<int> &results, vector<double> &key_v){
+		
+		// build the full key index
+		stx::btree<double, int> full_key_index;
+		for (int i = 0; i < key_v.size(); i++) {
+			full_key_index.insert(pair<double, int>(key_v[i], i));
+		}
+		
+		double result;
+		results.clear();
+		double a, b;
+		int index = 0;
+		int bottom_layer = stage_model_parameters.size() - 1;
+		stx::btree<double, int>::iterator iter;
+		double lower_result, upper_result;
+		double max_err_rel;
+		int count_refinement = 0;
+
+		auto t0 = chrono::steady_clock::now();
+
+		for (int k = 0; k < queryset_low.size(); k++) {
+
+			// handling the lower key
+			index = 0;
+			// for the non-leaf layer
+			for (int i = 0; i < stage_model_parameters.size() - 1; i++) {
+				a = stage_model_parameters[i][index].first;
+				b = stage_model_parameters[i][index].second;
+				lower_result = a * queryset_low[k] + b;
+
+				index = (lower_result / TOTAL_SIZE * stage_model_parameters[i + 1].size());
+				//index *= stage_model_parameters[i + 1].size();
+				//index = int(index);
+				if (index < 0) {
+					index = 0;
+				}
+				else if (index > stage_model_parameters[i + 1].size() - 1) {
+					index = stage_model_parameters[i + 1].size() - 1;
+				}
+			}
+			// for the bottom layer
+			if (replacement_btree_index[index] == -1) {
+				a = stage_model_parameters[bottom_layer][index].first;
+				b = stage_model_parameters[bottom_layer][index].second;
+				lower_result = a * queryset_low[k] + b;
+			}
+			else {
+				// using btree
+				iter = this->replaced_btree[replacement_btree_index[index]].lower_bound(queryset_low[k]);
+				lower_result = iter->second;
+			}
+
+			// handling the upper key
+			index = 0;
+			// for the non-leaf layer
+			for (int i = 0; i < stage_model_parameters.size() - 1; i++) {
+				a = stage_model_parameters[i][index].first;
+				b = stage_model_parameters[i][index].second;
+				upper_result = a * queryset_up[k] + b;
+
+				index = (upper_result / TOTAL_SIZE * stage_model_parameters[i + 1].size());
+				//index *= stage_model_parameters[i + 1].size();
+				//index = int(index);
+				if (index < 0) {
+					index = 0;
+				}
+				else if (index > stage_model_parameters[i + 1].size() - 1) {
+					index = stage_model_parameters[i + 1].size() - 1;
+				}
+			}
+			// for the bottom layer
+			if (replacement_btree_index[index] == -1) {
+				a = stage_model_parameters[bottom_layer][index].first;
+				b = stage_model_parameters[bottom_layer][index].second;
+				upper_result = a * queryset_up[k] + b;
+			}
+			else {
+				// using btree
+				iter = this->replaced_btree[replacement_btree_index[index]].lower_bound(queryset_up[k]);
+				upper_result = iter->second;
+			}
+			
+			result = upper_result - lower_result;
+
+			// check refinement condition
+			max_err_rel = (2 * error_threshold) / (result - 2 * error_threshold);
+			//cout << result_low << "  " << result_up << "  " << result << "  " << max_err_rel << endl;
+			if (max_err_rel > Trel || max_err_rel < 0) {
+				count_refinement++;
+				// do refinement
+				iter = full_key_index.find(queryset_low[k]);
+				lower_result = iter->second;
+				iter = full_key_index.find(queryset_up[k]);
+				upper_result = iter->second;
+				result = upper_result - lower_result;
+			}
+
+			results.push_back(result);
+		}
+
+		auto t1 = chrono::steady_clock::now();
+
+		auto average_time = chrono::duration_cast<chrono::nanoseconds>(t1 - t0).count() / queryset_low.size();
+		auto total_time = chrono::duration_cast<chrono::nanoseconds>(t1 - t0).count();
+
+		double MEabs, MErel;
+		MeasureAccuracy(results, "C:/Users/Cloud/iCloudDrive/LearnedAggregate/VLDB_Final_Experiments/RealQueryResults/TWEET_1D.csv", MEabs, MErel);
+
+		QueryResult query_result;
+		query_result.average_query_time = average_time;
+		query_result.total_query_time = total_time;
+		query_result.measured_absolute_error = MEabs;
+		query_result.measured_relative_error = MErel;
+
+		return query_result;
+	}
+
 	// using NN as the first layer
 	void PredictVectorWithNN(vector<double> &queryset, vector<double> &results) {
 		double result;
@@ -627,17 +749,17 @@ class StageModel {
 	}
 
 	// this is not % !!! 
-	double MeasureAccuracy(arma::rowvec predicted_range, string filename_result="C:/Users/Cloud/Desktop/LearnIndex/data/SortedSingleDimResults.csv") {
-		mat real_result;
-		bool loaded3 = mlpack::data::Load(filename_result, real_result);
-		arma::rowvec real_range = real_result.row(0);
-		arma::rowvec relative_error = abs(predicted_range - real_range);
-		relative_error /= real_range;
-		double total_error = arma::accu(relative_error);
-		double average_relative_error = total_error / relative_error.size();
-		cout << "average error: " << average_relative_error << endl;
-		return average_relative_error;
-	}
+	//double MeasureAccuracy(arma::rowvec predicted_range, string filename_result="C:/Users/Cloud/Desktop/LearnIndex/data/SortedSingleDimResults.csv") {
+	//	mat real_result;
+	//	bool loaded3 = mlpack::data::Load(filename_result, real_result);
+	//	arma::rowvec real_range = real_result.row(0);
+	//	arma::rowvec relative_error = abs(predicted_range - real_range);
+	//	relative_error /= real_range;
+	//	double total_error = arma::accu(relative_error);
+	//	double average_relative_error = total_error / relative_error.size();
+	//	cout << "average error: " << average_relative_error << endl;
+	//	return average_relative_error;
+	//}
 
 	static double MeasureAccuracyWithVector(vector<double> &predicted_range, string filename_result = "C:/Users/Cloud/Desktop/LearnIndex/data/SortedSingleDimResults.csv") {
 		mat real_result;
@@ -744,4 +866,6 @@ class StageModel {
 
 	LinearRegression bucket_lr;
 	stx::btree_map<double, int> bucket_map;
+
+	double Trel; // used for perform refinement 
 };

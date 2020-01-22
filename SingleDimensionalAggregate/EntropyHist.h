@@ -183,7 +183,7 @@ vector<int> EntropyHist(int buckets, vector<double> &keys) {
 
 	mat dataset;
 	VectorToRowvec(dataset, boundary);
-	dataset.save("C:/Users/Cloud/Desktop/LearnIndex/data/EntropyHistSplits5000.bin");
+	dataset.save("C:/Users/Cloud/Desktop/LearnIndex/data/EntropyHistSplits10000.bin");
 
 	return boundary;
 }

@@ -78,10 +78,25 @@
     <ClInclude Include="ROLLearnedIndex_quartic.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="StageModel2D_QuadDivide.h">
+    <ClInclude Include="ReverseMaxlossOptimal.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="ReverseMaxlossOptimal.h">
+    <ClInclude Include="Maxloss2D_QuadDivide.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="RTree.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Wavlet.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MethodTesting.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="VLDBFinalExp1.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="VLDBFinalExp2.h">
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>
