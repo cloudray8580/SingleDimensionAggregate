@@ -749,6 +749,15 @@ public:
 		// but the max aggregate value is not correct, need to change it to
 	}
 
+	void PrepareExactAggregateMaxTree(vector<double> &key_attribute, vector<double> &target_attribute){
+
+		for (int i = 0; i < key_attribute.size(); i++) {
+			aggregate_max_tree.insert(pair<double, double>(key_attribute[i], target_attribute[i]));
+		}
+		// generate max values for the aggregate max tree
+		aggregate_max_tree.generate_max_aggregate();
+	}
+
 	QueryResult MaxPredictionWithoutRefinement(vector<double> &queryset_low, vector<double> &queryset_up, vector<double> &results, vector<double> &key_v) {
 		results.clear();
 		
@@ -830,6 +839,107 @@ public:
 		// record experiment result;
 		ofstream outfile_exp;
 		outfile_exp.open("C:/Users/Cloud/iCloudDrive/LearnedAggregate/VLDB_Final_Experiments/RunResults/MAX.csv", std::ios_base::app);
+		outfile_exp << chrono::duration_cast<chrono::nanoseconds>(t1 - t0).count() / (queryset_low.size()) << endl;
+		outfile_exp << endl;
+		outfile_exp.close();
+	}
+
+	// with refinement
+	QueryResult MaxPrediction(vector<double> &queryset_low, vector<double> &queryset_up, vector<double> &results) {
+		results.clear();
+		
+		int model_index = 0;
+		double result, result_low, result_up, key_low, key_up;
+
+		// retrieve all the slopes, assume only in 1-dimensional data
+		vector<double> slopes;
+		for (int i = 0; i < model_parameters.size(); i++) {
+			slopes.push_back(model_parameters[i][1]); // only consider 1-dimension
+		}
+
+		bottom_layer_index.AssignSlopeToLeafNodes(slopes);
+
+		stx::btree<double, int>::iterator iter;
+
+		auto t0 = chrono::steady_clock::now();
+
+		double max_lower, max_upper, side_max;
+		double left_boundary, right_boundary;
+
+		double condition; // for realtive error condition checking
+
+		// for each range query pair
+		for (int i = 0; i < queryset_low.size(); i++) {
+
+			// handle left boundary, this part could be actually embed into the tree, and hence the time for a traverse with tree height n-1 could be deducted
+			iter = this->bottom_layer_index.upper_bound(queryset_low[i]);
+			iter--;
+			model_index = iter->second;
+			left_boundary = dataset_range[model_index].second;
+			if (slopes[model_index] > 0) {
+				// prediction at right boundary
+				max_lower = dataset_range[model_index].second * model_parameters[model_index][1] + model_parameters[model_index][0];
+			}
+			else {
+				// prediction at query key
+				max_lower = queryset_low[i] * model_parameters[model_index][1] + model_parameters[model_index][0];
+			}
+
+			// handle right boundary, this part could be actually embed into the tree, and hence the time for a traverse with tree height n-1 could be deducted
+			iter = this->bottom_layer_index.upper_bound(queryset_low[i]);
+			iter--;
+			model_index = iter->second;
+			right_boundary = dataset_range[model_index].first;
+			if (slopes[model_index] > 0) {
+				// prediction at query key
+				max_upper = queryset_low[i] * model_parameters[model_index][1] + model_parameters[model_index][0];
+			}
+			else {
+				// prediction at left boundary
+				max_upper = dataset_range[model_index].first * model_parameters[model_index][1] + model_parameters[model_index][0];
+			}
+			
+			side_max = max_lower > max_upper ? max_lower : max_upper;
+
+			// handle middle
+			result = bottom_layer_index.our_max_query(left_boundary, right_boundary); // such that the query do not handle both sides
+
+			result = side_max > result ? side_max : result;
+
+			// check relative error condition
+			condition = t_abs * (1 + 1 / t_rel);
+			if (result >= condition) {
+				count_refinement++;
+				// do refinement
+				aggregate_max_tree.max_query(queryset_low[i], queryset_up[i]);
+			}
+
+			results.push_back(result);
+		}
+		auto t1 = chrono::steady_clock::now();
+		/*cout << "Total Time in chrono: " << chrono::duration_cast<chrono::nanoseconds>(t1 - t0).count() << " ns" << endl;
+		cout << "Average Time in chrono: " << chrono::duration_cast<chrono::nanoseconds>(t1 - t0).count() / (queryset_low.size()) << " ns" << endl;*/
+
+		auto average_time = chrono::duration_cast<chrono::nanoseconds>(t1 - t0).count() / queryset_low.size();
+		auto total_time = chrono::duration_cast<chrono::nanoseconds>(t1 - t0).count();
+
+		double MEabs, MErel;
+		MeasureAccuracy(results, "C:/Users/Cloud/iCloudDrive/LearnedAggregate/VLDB_Final_Experiments/RealQueryResults/HKI_MAX.csv", MEabs, MErel);
+
+		QueryResult query_result;
+		query_result.average_query_time = average_time;
+		query_result.total_query_time = total_time;
+		query_result.measured_absolute_error = MEabs;
+		query_result.measured_relative_error = MErel;
+		query_result.hit_count = queryset_low.size() - count_refinement;
+		query_result.refinement_count = count_refinement;
+		query_result.total_query_count = queryset_low.size();
+
+		return query_result;
+
+		// record experiment result;
+		ofstream outfile_exp;
+		outfile_exp.open("C:/Users/Cloud/iCloudDrive/LearnedAggregate/VLDB_Final_Experiments/RunResults/MAX_refined.csv", std::ios_base::app);
 		outfile_exp << chrono::duration_cast<chrono::nanoseconds>(t1 - t0).count() / (queryset_low.size()) << endl;
 		outfile_exp << endl;
 		outfile_exp.close();
@@ -1223,4 +1333,6 @@ public:
 	
 	vector<double> absolute_errors; // the absolute error for each histogram segment
  	double max_absolute_error; // for histogram segmentation
+
+ 	stx::btree<double, double> aggregate_max_tree; // for exact query
 };

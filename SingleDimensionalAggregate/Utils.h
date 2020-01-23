@@ -14,6 +14,9 @@ struct QueryResult {
 	unsigned long long total_query_time;
 	double measured_absolute_error;
 	double measured_relative_error;
+	int hit_count;
+	int refinement_count;
+	int total_query_count;
 };
 
 void VectorToRowvec(arma::mat& rv, vector<double> &v) {
