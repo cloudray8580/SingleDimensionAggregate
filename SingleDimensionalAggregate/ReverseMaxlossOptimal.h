@@ -867,6 +867,7 @@ public:
 		double left_boundary, right_boundary;
 
 		double condition; // for realtive error condition checking
+		int count_refinement = 0;
 
 		// for each range query pair
 		for (int i = 0; i < queryset_low.size(); i++) {
