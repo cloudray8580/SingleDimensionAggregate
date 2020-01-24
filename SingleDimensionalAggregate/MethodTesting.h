@@ -19,7 +19,7 @@ QueryResult TestS2Sampling1D(vector<double> &keys, vector<double> queryset_L, ve
 	auto t0 = chrono::steady_clock::now();
 
 	for (int i = 0; i < queryset_L.size(); i++) {
-		result = SequentialSampling(keys, queryset_L[i], queryset_U[i]);
+		result = SequentialSampling(keys, queryset_L[i], queryset_U[i], 0.9, Trel, Tabs);
 		predicted_results.push_back(int(result));
 	}
 
@@ -71,7 +71,7 @@ QueryResult TestRMI(vector<double> &keys, vector<double> &values, vector<double>
 	arch.push_back(100);
 	arch.push_back(1000);
 
-	StageModel stage_model(dataset, responses, arch, 0, 5000);
+	StageModel stage_model(dataset, responses, arch, Tabs, Trel);
 	stage_model.DumpParameters();
 	QueryResult query_result = stage_model.CountPrediction(queryset_L, queryset_U, predicted_results, keys);
 

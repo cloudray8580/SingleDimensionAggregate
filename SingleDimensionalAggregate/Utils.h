@@ -181,7 +181,7 @@ void FindExactResultByScan2() {
 	RowvecToVector(key2_row, x2_v);
 
 	arma::mat queryset;
-	mlpack::data::Load("C:/Users/Cloud/Desktop/LearnedAggregateData/Queries2D_sigma_36_18.csv", queryset); // d1_low, d2_low, d1_up, d2_up
+	mlpack::data::Load("C:/Users/Cloud/Desktop/LearnedAggregateData/Queries2D_mean_18_9_sigma_36_18.csv", queryset); // d1_low, d2_low, d1_up, d2_up
 	vector<double> d1_low, d2_low, d1_up, d2_up;
 	RowvecToVector(queryset.row(0), d1_low);
 	RowvecToVector(queryset.row(1), d2_low);
