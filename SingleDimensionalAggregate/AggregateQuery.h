@@ -22,6 +22,33 @@
 
 using namespace std;
 
+void Approximate1DMax(){
+	mat dataset;
+	bool loaded = mlpack::data::Load("C:/Users/Cloud/Desktop/SampledFinancial.csv", dataset);
+	arma::rowvec trainingset = dataset.row(0);
+	arma::rowvec responses = dataset.row(dataset.n_rows - 1);
+	vector<double> keys, values;
+	RowvecToVector(trainingset, keys);
+	RowvecToVector(responses, values);
+
+	ReverseMaxlossOptimal RMLO(100, 0.01, 3);
+
+	vector<double> paras;
+	double loss;
+
+	auto t0 = chrono::steady_clock::now();
+	RMLO.SolveMaxlossLP(x_v, y_v, 0, y_v.size(), paras, loss);
+	auto t1 = chrono::steady_clock::now();
+	cout << "total query time in chrono: " << chrono::duration_cast<chrono::nanoseconds>(t1 - t0).count() << " in ns    " << chrono::duration_cast<chrono::nanoseconds>(t1 - t0).count() / (1000 * 1000 * 1000) << "in s" << endl;
+
+	cout << "loss: " << loss << endl;
+	// start from a0 TO a3
+	for (int i = 0; i < paras.size(); i++) {
+		cout << paras[i] << endl;
+	}
+	system("pause");
+}
+
 // https://www.johndcook.com/blog/cpp_phi_inverse/
 // https://www.johndcook.com/blog/normal_cdf_inverse/
 double RationalApproximation(double t) {
