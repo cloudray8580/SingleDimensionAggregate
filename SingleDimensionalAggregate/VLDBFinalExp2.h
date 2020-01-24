@@ -27,7 +27,7 @@ void VLDB_Final_Experiment_2_COUNT() {
 	run_result.open("C:/Users/Cloud/iCloudDrive/LearnedAggregate/VLDB_Final_Experiments/RunResults/Exp2_COUNT.csv", std::ios::app);
 
 	// S2 sampling
-	for (int i = 0; i < Eabs_collection.size(); i++) {
+	for (int i = 0; i < Erel_collection.size(); i++) {
 		Erel = Erel_collection[i];
 		QS = TestS2Sampling1D(keys, query_low, query_up, 0.9, Erel, 100); // probability= 0.9, Trel = 0.01, double Tabs = 100
 		QSS.push_back(QS);
@@ -41,7 +41,7 @@ void VLDB_Final_Experiment_2_COUNT() {
 
 	// FITingTree
 	QSS.clear();
-	for (int i = 0; i < Eabs_collection.size(); i++) {
+	for (int i = 0; i < Erel_collection.size(); i++) {
 		Erel = Erel_collection[i];
 		QS = TestFITingTree(keys, values, query_low, query_up, Erel, 100);
 		QSS.push_back(QS);
@@ -55,7 +55,7 @@ void VLDB_Final_Experiment_2_COUNT() {
 
 	// RMI, set the dataset inside the method!!!
 	QSS.clear();
-	for (int i = 0; i < Eabs_collection.size(); i++) {
+	for (int i = 0; i < Erel_collection.size(); i++) {
 		Erel = Erel_collection[i];
 		QS = TestRMI(keys, values, query_low, query_up, Erel, 100); // the detailed settings are inside this method, along with the dataset it used !
 		QSS.push_back(QS);
@@ -69,7 +69,7 @@ void VLDB_Final_Experiment_2_COUNT() {
 
 	// Polyfit 
 	QSS.clear();
-	for (int i = 0; i < Eabs_collection.size(); i++) {
+	for (int i = 0; i < Erel_collection.size(); i++) {
 		Erel = Erel_collection[i];
 		QS = TestPolyfit(keys, values, query_low, query_up, Erel, 100, 1); // probability= 0.9, Trel = 0.01, double Tabs = 100, int highest_term
 		QSS.push_back(QS);
@@ -92,7 +92,7 @@ void VLDB_Final_Experiment_2_MAX() {
 
 	double Erel;
 	vector<double> Erel_collection = { 0.005, 0.01, 0.05, 0.10, 0.20 };
-	//vector<double> Eabs_collection = { 1000,2000 };
+	//vector<double> Erel_collection = { 1000,2000 };
 
 	QueryResult QS;
 	vector<QueryResult> QSS;
@@ -101,7 +101,7 @@ void VLDB_Final_Experiment_2_MAX() {
 	run_result.open("C:/Users/Cloud/iCloudDrive/LearnedAggregate/VLDB_Final_Experiments/RunResults/Exp2_MAX.csv", std::ios::app);
 
 	// Polyfit
-	for (int i = 0; i < Eabs_collection.size(); i++) {
+	for (int i = 0; i < Erel_collection.size(); i++) {
 		Erel = Erel_collection[i];
 		QS = TestPolyfit_MAX(keys, values, query_low, query_up, Erel, 100, 1); // probability= 0.9, Trel = 0.01, double Tabs = 100, int highest_term
 		QSS.push_back(QS);
@@ -132,7 +132,7 @@ void VLDB_Final_Experiment_2_COUNT2D() {
 	run_result.open("C:/Users/Cloud/iCloudDrive/LearnedAggregate/VLDB_Final_Experiments/RunResults/Exp2_COUNT2D.csv", std::ios::app);
 
 	// S2 sampling
-	for (int i = 0; i < Eabs_collection.size(); i++) {
+	for (int i = 0; i < Erel_collection.size(); i++) {
 		Erel = Erel_collection[i];
 		QS = TestS2Sampling2D(keys1, keys2, query_low1, query_low2, query_up1, query_up2, 0.9, Erel, 1000); // probability= 0.9, Trel = 0.01, double Tabs = 100
 		QSS.push_back(QS);
@@ -144,7 +144,7 @@ void VLDB_Final_Experiment_2_COUNT2D() {
 	run_result << endl;
 
 	// Polyfit, use its own accumulation dataset, set in its own method
-	for (int i = 0; i < Eabs_collection.size(); i++) {
+	for (int i = 0; i < Erel_collection.size(); i++) {
 		Erel = Erel_collection[i];
 		QS = TestPolyfit_COUNT2D(query_low1, query_low2, query_up1, query_up2, Erel, 1000);
 		QSS.push_back(QS);
