@@ -37,7 +37,7 @@ void Approximate1DMax(){
 	double loss;
 
 	auto t0 = chrono::steady_clock::now();
-	RMLO.SolveMaxlossLP(x_v, y_v, 0, y_v.size(), paras, loss);
+	RMLO.SolveMaxlossLP(keys, values, 0, y_v.size(), paras, loss);
 	auto t1 = chrono::steady_clock::now();
 	cout << "total query time in chrono: " << chrono::duration_cast<chrono::nanoseconds>(t1 - t0).count() << " in ns    " << chrono::duration_cast<chrono::nanoseconds>(t1 - t0).count() / (1000 * 1000 * 1000) << "in s" << endl;
 
