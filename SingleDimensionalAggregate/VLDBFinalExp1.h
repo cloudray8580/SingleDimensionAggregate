@@ -108,7 +108,7 @@ void VLDB_Final_Experiment_1_MAX() {
 	}
 	//store it in file
 	for (int i = 0; i < QSS.size(); i++) {
-		run_result << QSS[i].average_query_time << "," << QSS[i].total_query_time << "," << QSS[i].measured_absolute_error << "," << QSS[i].measured_relative_error << endl;
+		run_result << QSS[i].average_query_time << "," << QSS[i].total_query_time << "," << QSS[i].measured_absolute_error << "," << QSS[i].measured_relative_error << " " << SS[i].hit_count << "," << QSS[i].model_amount << endl;
 	}
 	run_result << endl;
 
@@ -124,7 +124,7 @@ void VLDB_Final_Experiment_1_COUNT2D() {
 	LoadOSMQuerySet(query_low1, query_low2, query_up1, query_up2);
 
 	double Eabs = 100;
-	vector<double> Eabs_collection = { 50, 100, 200, 500, 1000 };
+	vector<double> Eabs_collection = { 500, 1000, 2000 };
 
 	QueryResult QS;
 	vector<QueryResult> QSS;

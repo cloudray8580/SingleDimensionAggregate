@@ -935,6 +935,7 @@ public:
 		query_result.hit_count = queryset_low.size() - count_refinement;
 		query_result.refinement_count = count_refinement;
 		query_result.total_query_count = queryset_low.size();
+		query_result.model_amount = dataset_range.size();
 
 		return query_result;
 

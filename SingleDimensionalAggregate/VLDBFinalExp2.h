@@ -108,7 +108,7 @@ void VLDB_Final_Experiment_2_MAX() {
 	}
 	//store it in file
 	for (int i = 0; i < QSS.size(); i++) {
-		run_result << QSS[i].average_query_time << "," << QSS[i].total_query_time << "," << QSS[i].measured_absolute_error << "," << QSS[i].measured_relative_error << " " << SS[i].hit_count << endl;
+		run_result << QSS[i].average_query_time << "," << QSS[i].total_query_time << "," << QSS[i].measured_absolute_error << "," << QSS[i].measured_relative_error << " " << SS[i].hit_count << "," << QSS[i].model_amount << endl;
 	}
 	run_result << endl;
 
