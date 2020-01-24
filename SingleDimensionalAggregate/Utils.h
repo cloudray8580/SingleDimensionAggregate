@@ -17,6 +17,7 @@ struct QueryResult {
 	int hit_count;
 	int refinement_count;
 	int total_query_count;
+	int model_amount;
 };
 
 void VectorToRowvec(arma::mat& rv, vector<double> &v) {
