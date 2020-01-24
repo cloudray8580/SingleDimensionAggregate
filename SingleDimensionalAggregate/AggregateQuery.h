@@ -24,7 +24,7 @@ using namespace std;
 
 void Approximate1DMax(){
 	mat dataset;
-	bool loaded = mlpack::data::Load("C:/Users/Cloud/Desktop/SampledFinancial.csv", dataset);
+	bool loaded = mlpack::data::Load("C:/Users/Cloud/iCloudDrive/SampledFinancial.csv", dataset);
 	arma::rowvec trainingset = dataset.row(0);
 	arma::rowvec responses = dataset.row(dataset.n_rows - 1);
 	vector<double> keys, values;
