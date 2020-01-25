@@ -767,7 +767,7 @@ public:
 
 
 		// retrieve all the slopes, assume only in 1-dimensional data
-		vector<double> slopes;
+		slopes.clear();
 		for (int i = 0; i < model_parameters.size(); i++) {
 			slopes.push_back(model_parameters[i][1]); // only consider 1-dimension
 		}
@@ -1352,5 +1352,6 @@ public:
 	vector<double> absolute_errors; // the absolute error for each histogram segment
  	double max_absolute_error; // for histogram segmentation
 
+ 	vector<double> slopes; // for max aggregate query
  	stx::btree<double, double> aggregate_max_tree; // for exact query
 };
