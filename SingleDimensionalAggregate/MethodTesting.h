@@ -2,6 +2,7 @@
 
 #include"AggregateQuery.h"
 #include "Utils.h"
+#include <string>
 //struct QueryResult {
 //	//std::chrono::duration<double> average_query_time;
 //	//std::chrono::duration<double> total_query_time;
@@ -136,7 +137,35 @@ QueryResult TestS2Sampling2D(vector<double> &keys1, vector<double> &keys2, vecto
 	return query_result;
 }
 
+// call when the Abs error is different
 QueryResult TestPolyfit_COUNT2D(vector<double> &queryset_L1, vector<double> &queryset_L2, vector<double> &queryset_U1, vector<double> &queryset_U2, double Trel = 0.01, double Tabs = 100) {
+
+	double result;
+	vector<double> predicted_results;
+	
+	Maxloss2D_QuadDivide model2d(Tabs, Trel, -180.0, 180.0, -90.0, 90.0);
+	model2d.GenerateKeysAndAccuFromFile("C:/Users/Cloud/Desktop/LearnedAggregateData/Sampled2D_100M_1000_1000.csv");
+	model2d.TrainModel();
+	//cout << "Bottom model size: " << model2d.model_rtree.size() << endl;
+	//cout << "Bottom model size: " << model2d.temp_models.size() << endl;
+
+	// try to save models to file
+
+	int AbsErr = int(Tabs);
+	string AbsErrStr = intToString(AbsErr);
+	string filename = "C:/Users/Cloud/Desktop/LearnedAggregateData/2D_LP_models_100M_1000_1000" + AbsErrStr + ".csv";
+	model2d.WriteTrainedModelsToFile(filename);
+	// try to read models from file
+	//model2d.ReadTrainedModelsFromFile("C:/Users/Cloud/Desktop/LearnedAggregateData/2D_LP_models_100M_1000_1000.csv");
+	//model2d.LoadRtree();
+
+	QueryResult query_result = model2d.CountPrediction2(queryset_L1, queryset_L2, queryset_U1, queryset_U2, predicted_results);
+
+	return query_result;
+}
+
+// call when the abs error is fixed to 10000
+QueryResult TestPolyfit_COUNT2D_FIXABS(vector<double> &queryset_L1, vector<double> &queryset_L2, vector<double> &queryset_U1, vector<double> &queryset_U2, double Trel = 0.01, double Tabs = 100) {
 
 	double result;
 	vector<double> predicted_results;

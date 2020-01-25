@@ -146,7 +146,7 @@ void VLDB_Final_Experiment_2_COUNT2D() {
 	// Polyfit, use its own accumulation dataset, set in its own method
 	for (int i = 0; i < Erel_collection.size(); i++) {
 		Erel = Erel_collection[i];
-		QS = TestPolyfit_COUNT2D(query_low1, query_low2, query_up1, query_up2, Erel, 1000);
+		QS = TestPolyfit_COUNT2D_FIXABS(query_low1, query_low2, query_up1, query_up2, Erel, 1000);
 		QSS.push_back(QS);
 	}
 	//store it in file

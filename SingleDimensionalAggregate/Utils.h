@@ -118,7 +118,7 @@ void LoadOSMDataset(vector<double> &key1, vector<double> &key2) {
 
 void LoadOSMQuerySet(vector<double> &d1_low, vector<double> &d2_low, vector<double> &d1_up, vector<double> &d2_up) {
 	arma::mat queryset;
-	mlpack::data::Load("C:/Users/Cloud/Desktop/LearnedAggregateData/Queries2D_sigma_36_18.csv", queryset); // d1_low, d2_low, d1_up, d2_up
+	mlpack::data::Load("C:/Users/Cloud/iCloudDrive/Queries2D_mean_18_9_sigma_36_18.csv", queryset); // d1_low, d2_low, d1_up, d2_up
 
 	RowvecToVector(queryset.row(0), d1_low);
 	RowvecToVector(queryset.row(1), d2_low);
