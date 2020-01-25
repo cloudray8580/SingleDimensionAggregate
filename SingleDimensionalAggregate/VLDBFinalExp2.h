@@ -142,6 +142,7 @@ void VLDB_Final_Experiment_2_COUNT2D() {
 		run_result << QSS[i].average_query_time << "," << QSS[i].total_query_time << "," << QSS[i].measured_absolute_error << "," << QSS[i].measured_relative_error << endl;
 	}
 	run_result << endl;
+	QSS.clear();
 
 	// Polyfit, use its own accumulation dataset, set in its own method
 	for (int i = 0; i < Erel_collection.size(); i++) {

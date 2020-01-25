@@ -144,6 +144,7 @@ void VLDB_Final_Experiment_1_COUNT2D() {
 	}
 	run_result << endl;
 
+	QSS.clear();
 	// Polyfit, use its own accumulation dataset, set in its own method
 	for (int i = 0; i < Eabs_collection.size(); i++) {
 		Eabs = Eabs_collection[i];

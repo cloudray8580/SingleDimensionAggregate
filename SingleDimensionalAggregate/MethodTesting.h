@@ -98,7 +98,7 @@ QueryResult TestPolyfit_MAX(vector<double> &keys, vector<double> &values, vector
 	ReverseMaxlossOptimal RMLO(Tabs, Trel, highest_term);
 	RMLO.SegmentOnTrainMaxLossModel(keys, values);
 	RMLO.BuildNonLeafLayerWithBtree();
-	RMLO.PrepareMaxAggregateTree();
+	RMLO.PrepareMaxAggregateTree(keys, values);
 	RMLO.PrepareExactAggregateMaxTree(keys, values);
 	QueryResult query_result = RMLO.MaxPrediction(queryset_L, queryset_U, predicted_results);
 	return query_result;

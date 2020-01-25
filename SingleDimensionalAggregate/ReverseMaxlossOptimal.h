@@ -741,12 +741,44 @@ public:
 		}
 	}
 
-	void PrepareMaxAggregateTree() {
-		// generate the aggregate_max of the tree
-		// also generate the max min key boundary
-		bottom_layer_index.generate_max_aggregate();
+	// the dataset have been sorted by key
+	void PrepareMaxAggregateTree(vector<double> &keys, vector<double> values) {
+		
+		// generate the aggregate_max for each model
+		int model_index = 0;
+		double model_max = 0; // no negative value
+		vector<double> model_maxes;
+		for (int i = 0; i < keys.size(); i++){
+			if (keys[i] >= dataset_range[model_index].first && keys[i] <= dataset_range[model_index].second){
+				// consider model mox
+				if(values[i] > model_max){
+					model_max = values[i];
+				}
+			} else {
+				// for a new model
+				model_maxes.push_back(model_max);
+				model_max = values[i];
+				model_index += 1;
+			}
+		}
 
-		// but the max aggregate value is not correct, need to change it to
+		// assign the agggregate max values to each slot data of the index's leaf nodes
+		bottom_layer_index.AssignAggregateMaxToLeafNodes(model_maxes);
+
+
+		// retrieve all the slopes, assume only in 1-dimensional data
+		vector<double> slopes;
+		for (int i = 0; i < model_parameters.size(); i++) {
+			slopes.push_back(model_parameters[i][1]); // only consider 1-dimension
+		}
+
+		// assign the slope values to each slot data of the index's leaf nodes
+		bottom_layer_index.AssignSlopeToLeafNodes(slopes);
+	}
+
+	// this is abandoned
+	void PrepareMaxAggregateTree(){
+		bottom_layer_index.generate_max_aggregate();
 	}
 
 	void PrepareExactAggregateMaxTree(vector<double> &key_attribute, vector<double> &target_attribute){
@@ -763,14 +795,6 @@ public:
 		
 		int model_index = 0;
 		double result, result_low, result_up, key_low, key_up;
-
-		// retrieve all the slopes, assume only in 1-dimensional data
-		vector<double> slopes;
-		for (int i = 0; i < model_parameters.size(); i++) {
-			slopes.push_back(model_parameters[i][1]); // only consider 1-dimension
-		}
-
-		bottom_layer_index.AssignSlopeToLeafNodes(slopes);
 
 		stx::btree<double, int>::iterator iter;
 
@@ -850,14 +874,6 @@ public:
 		
 		int model_index = 0;
 		double result, result_low, result_up, key_low, key_up;
-
-		// retrieve all the slopes, assume only in 1-dimensional data
-		vector<double> slopes;
-		for (int i = 0; i < model_parameters.size(); i++) {
-			slopes.push_back(model_parameters[i][1]); // only consider 1-dimension
-		}
-
-		bottom_layer_index.AssignSlopeToLeafNodes(slopes);
 
 		stx::btree<double, int>::iterator iter;
 
