@@ -152,7 +152,7 @@ QueryResult TestPolyfit_COUNT2D(vector<double> &queryset_L1, vector<double> &que
 	// try to save models to file
 
 	int AbsErr = int(Tabs);
-	string AbsErrStr = intToString(AbsErr);
+	string AbsErrStr = to_string(AbsErr);
 	string filename = "C:/Users/Cloud/Desktop/LearnedAggregateData/2D_LP_models_100M_1000_1000" + AbsErrStr + ".csv";
 	model2d.WriteTrainedModelsToFile(filename);
 	// try to read models from file
