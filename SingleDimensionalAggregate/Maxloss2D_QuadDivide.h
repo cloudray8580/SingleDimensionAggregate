@@ -619,7 +619,7 @@ public:
 		auto total_time = chrono::duration_cast<chrono::nanoseconds>(t1 - t0).count();
 
 		double MEabs, MErel;
-		MeasureAccuracy(results, "C:/Users/Cloud/iCloudDrive/LearnedAggregate/VLDB_Final_Experiments/RealQueryResults/COUNT_2D.csv", MEabs, MErel);
+		MeasureAccuracy(results, "C:/Users/Cloud/iCloudDrive/LearnedAggregate/VLDB_Final_Experiments/RealQueryResults/OSM_2D.csv", MEabs, MErel);
 
 		QueryResult query_result;
 		query_result.average_query_time = average_time;

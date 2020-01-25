@@ -124,7 +124,7 @@ QueryResult TestS2Sampling2D(vector<double> &keys1, vector<double> &keys2, vecto
 	double MEabs, MErel;
 
 	// check correctness
-	MeasureAccuracy(predicted_results, "C:/Users/Cloud/iCloudDrive/LearnedAggregate/VLDB_Final_Experiments/RealQueryResults/COUNT_2D.csv", MEabs, MErel);
+	MeasureAccuracy(predicted_results, "C:/Users/Cloud/iCloudDrive/LearnedAggregate/VLDB_Final_Experiments/RealQueryResults/OSM_2D.csv", MEabs, MErel);
 
 	//ErrorGuaranteedSampling();
 
