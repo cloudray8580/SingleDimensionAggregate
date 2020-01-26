@@ -32,9 +32,9 @@ void Approximate1DMax(){
 	RowvecToVector(responses, values);
 
 	// try this
-	LinearRegression lr(dataset, responses);
+	//LinearRegression lr(dataset, responses);
 
-	ReverseMaxlossOptimal RMLO(100, 0.01, 2);
+	ReverseMaxlossOptimal RMLO(100, 0.01, 3);
 
 	vector<double> paras;
 	double loss;
@@ -45,6 +45,7 @@ void Approximate1DMax(){
 	cout << "total query time in chrono: " << chrono::duration_cast<chrono::nanoseconds>(t1 - t0).count() << " in ns    " << chrono::duration_cast<chrono::nanoseconds>(t1 - t0).count() / (1000 * 1000 * 1000) << "in s" << endl;
 
 	cout << "loss: " << loss << endl;
+	cout << "paras: (start from a0) " << loss << endl;
 	// start from a0 TO a3
 	for (int i = 0; i < paras.size(); i++) {
 		cout << paras[i] << endl;
