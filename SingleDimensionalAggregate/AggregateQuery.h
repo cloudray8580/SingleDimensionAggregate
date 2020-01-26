@@ -31,6 +31,9 @@ void Approximate1DMax(){
 	RowvecToVector(trainingset, keys);
 	RowvecToVector(responses, values);
 
+	// try this
+	LinearRegression lr(dataset, responses);
+
 	ReverseMaxlossOptimal RMLO(100, 0.01, 2);
 
 	vector<double> paras;
