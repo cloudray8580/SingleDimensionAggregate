@@ -31,25 +31,36 @@ void Approximate1DMax(){
 	RowvecToVector(trainingset, keys);
 	RowvecToVector(responses, values);
 
+	// ReverseMaxlossOptimal RMLO(100, 0.01, 3);
+
+	// vector<double> paras;
+	// double loss;
+
+	// auto t0 = chrono::steady_clock::now();
+	// RMLO.SolveMaxlossLP(keys, values, 0, values.size(), paras, loss);
+	// auto t1 = chrono::steady_clock::now();
+	// cout << "total query time in chrono: " << chrono::duration_cast<chrono::nanoseconds>(t1 - t0).count() << " in ns    " << chrono::duration_cast<chrono::nanoseconds>(t1 - t0).count() / (1000 * 1000 * 1000) << "in s" << endl;
+
+	// cout << "loss: " << loss << endl;
+	// cout << "paras: (start from a0) " << loss << endl;
+	// // start from a0 TO a3
+	// for (int i = 0; i < paras.size(); i++) {
+	// 	cout << paras[i] << endl;
+	// }
+
 	// try this
 	//LinearRegression lr(dataset, responses);
 
-	ReverseMaxlossOptimal RMLO(100, 0.01, 3);
+	ROLLearnedIndex_cubic order3();
+	double a,b,c,d,loss;
 
-	vector<double> paras;
-	double loss;
+	order3.MyCplexSolverForMaxLossCubicOptimized(keys, values, 0, keys.size(), a, b, c, d, loss);
 
-	auto t0 = chrono::steady_clock::now();
-	RMLO.SolveMaxlossLP(keys, values, 0, values.size(), paras, loss);
-	auto t1 = chrono::steady_clock::now();
-	cout << "total query time in chrono: " << chrono::duration_cast<chrono::nanoseconds>(t1 - t0).count() << " in ns    " << chrono::duration_cast<chrono::nanoseconds>(t1 - t0).count() / (1000 * 1000 * 1000) << "in s" << endl;
-
+	cout << "a3: " << a << endl;
+	cout << "a2: " << b << endl;
+	cout << "a1: " << c << endl;
+	cout << "a0: " << d << endl;
 	cout << "loss: " << loss << endl;
-	cout << "paras: (start from a0) " << loss << endl;
-	// start from a0 TO a3
-	for (int i = 0; i < paras.size(); i++) {
-		cout << paras[i] << endl;
-	}
 	system("pause");
 }
 

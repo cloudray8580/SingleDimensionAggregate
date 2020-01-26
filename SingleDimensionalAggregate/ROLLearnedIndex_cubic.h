@@ -39,7 +39,7 @@ public:
 		}
 	}
 
-	void MyCplexSolverForMaxLossQuadraticOptimized(const vector<double> &key_v, const vector<double> &position_v, int lower_index, int higher_index, double &a, double &b, double &c, double &d, double &loss) {
+	void MyCplexSolverForMaxLossCubicOptimized(const vector<double> &key_v, const vector<double> &position_v, int lower_index, int higher_index, double &a, double &b, double &c, double &d, double &loss) {
 		IloEnv env;
 		IloModel model(env);
 		IloCplex cplex(model);
@@ -69,8 +69,8 @@ public:
 		// set variable type, IloNumVarArray starts from 0.
 		vars.add(IloNumVar(env, -INFINITY, INFINITY, ILOFLOAT)); // the weight, i.e., a for x^3
 		vars.add(IloNumVar(env, -INFINITY, INFINITY, ILOFLOAT)); // the weight, i.e., b for x^2
-		vars.add(IloNumVar(env, -INFINITY, INFINITY, ILOFLOAT));      // the weight, i.e., c for x
-		vars.add(IloNumVar(env, -INFINITY, INFINITY, ILOFLOAT));      // the bias, i.e., d
+		vars.add(IloNumVar(env, -INFINITY, INFINITY, ILOFLOAT)); // the weight, i.e., c for x
+		vars.add(IloNumVar(env, -INFINITY, INFINITY, ILOFLOAT)); // the bias, i.e., d
 		vars.add(IloNumVar(env, 0.0, INFINITY, ILOFLOAT)); // our target, the max loss
 
 		// declare objective
@@ -80,10 +80,10 @@ public:
 
 		// add constraint for each record
 		for (int i = lower_index; i <= higher_index; i++) {
-			//model.add(vars[3] * key_v[i] * key_v[i] * key_v[i] + vars[2] * key_v[i] * key_v[i] + vars[1] * key_v[i] + vars[0] - position_v[i] <= vars[4]);
-			//model.add(vars[3] * key_v[i] * key_v[i] * key_v[i] + vars[2] * key_v[i] * key_v[i] + vars[1] * key_v[i] + vars[0] - position_v[i] >= -vars[4]);
-			model.add(vars[0] + vars[1] * key_v[i] + vars[2] * key_v[i] * key_v[i] + vars[3] * key_v[i] * key_v[i] * key_v[i] - position_v[i] <= vars[4]);
-			model.add(vars[0] + vars[1] * key_v[i] + vars[2] * key_v[i] * key_v[i] + vars[3] * key_v[i] * key_v[i] * key_v[i] - position_v[i] >= -vars[4]);
+			model.add(vars[0] * key_v[i] * key_v[i] * key_v[i] + vars[1] * key_v[i] * key_v[i] + vars[2] * key_v[i] + vars[3] - position_v[i] <= vars[4]);
+			model.add(vars[0] * key_v[i] * key_v[i] * key_v[i] + vars[1] * key_v[i] * key_v[i] + vars[2] * key_v[i] + vars[3] - position_v[i] >= -vars[4]);
+			//model.add(vars[0] + vars[1] * key_v[i] + vars[2] * key_v[i] * key_v[i] + vars[3] * key_v[i] * key_v[i] * key_v[i] - position_v[i] <= vars[4]);
+			//model.add(vars[0] + vars[1] * key_v[i] + vars[2] * key_v[i] * key_v[i] + vars[3] * key_v[i] * key_v[i] * key_v[i] - position_v[i] >= -vars[4]);
 		}
 
 		//model.add(vars[0] == -35184.423534);
@@ -96,14 +96,14 @@ public:
 		cplex.solve();
 
 		IloNum endtime_ = cplex.getTime();
-		cplex.exportModel("C:/Users/Cloud/Desktop/range392_2.sav");
+		//cplex.exportModel("C:/Users/Cloud/Desktop/range392_2.sav");
 		double target = cplex.getObjValue();
-		double slope1, slope2, slope3, bias;
 
-		slope1 = cplex.getValue(vars[0]);
-		slope2 = cplex.getValue(vars[1]);
-		slope3 = cplex.getValue(vars[2]);
-		bias = cplex.getValue(vars[3]);
+		loss = target;
+		a = cplex.getValue(vars[0]);
+		b = cplex.getValue(vars[1]);
+		c = cplex.getValue(vars[2]);
+		d = cplex.getValue(vars[3]);
 
 		//cout << "the variable a: " << cplex.getValue(vars[0]) << endl;
 		//cout << "the variable b: " << cplex.getValue(vars[1]) << endl;
@@ -116,13 +116,6 @@ public:
 		//cout << "slack: " << cplex.getSlacks() << endl;
 
 		env.end();
-
-		//return target;
-		a = slope1;
-		b = slope2;
-		c = slope3;
-		d = bias;
-		loss = target;
 	}
 
 	// key_v still use single, current_trainingset should contains the quadratic term?
