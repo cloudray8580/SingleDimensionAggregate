@@ -51,7 +51,7 @@ void Approximate1DMax(){
 	// try this
 	//LinearRegression lr(dataset, responses);
 
-	ROLLearnedIndex_cubic order3();
+	ROLLearnedIndex_cubic order3(9, 1000, 100);
 	double a,b,c,d,loss;
 
 	order3.MyCplexSolverForMaxLossCubicOptimized(keys, values, 0, keys.size(), a, b, c, d, loss);
