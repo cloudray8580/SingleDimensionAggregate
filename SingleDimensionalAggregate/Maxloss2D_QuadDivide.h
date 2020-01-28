@@ -579,6 +579,22 @@ public:
 
 			result = pred1 + pred2 - pred3 - pred4;
 
+			cout << "result_add1.size: " << result_add1.size() << endl;
+			cout << "result_add2.size: " << result_add2.size() << endl;
+			cout << "result_minus1.size: " << result_minus1.size() << endl;
+			cout << "result_minus2.size: " << result_minus2.size() << endl;
+
+			cout << "result_add1 parameters: " << endl;
+			cout << "a2: " << result_add1[0].first.a2 << endl;
+			cout << "a1: " << result_add1[0].first.a1 << endl;
+			cout << "b2: " << result_add1[0].first.b2 << endl;
+			cout << "b1: " << result_add1[0].first.b1 << endl;
+			cout << "c: " << result_add1[0].first.c << endl;
+			cout << "L1: " << result_add1[0].first.d1_lower << endl;
+			cout << "L2: " << result_add1[0].first.d2_lower << endl;
+			cout << "U1: " << result_add1[0].first.d1_upper << endl;
+			cout << "U2: " << result_add1[0].first.d2_upper << endl;
+
 			// check if satisfy relative error threshold
 			max_err_rel = 4 * error_threshold / (result - 4 * error_threshold);
 			//cout << "estimate relative error: " << max_err_rel << endl;
