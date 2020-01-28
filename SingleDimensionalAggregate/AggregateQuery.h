@@ -24,43 +24,58 @@ using namespace std;
 
 void Approximate1DMax(){
 	mat dataset;
-	bool loaded = mlpack::data::Load("C:/Users/Cloud/iCloudDrive/SampledFinancial.csv", dataset);
+	//bool loaded = mlpack::data::Load("C:/Users/Cloud/iCloudDrive/SampledFinancial.csv", dataset);
+	bool loaded = mlpack::data::Load("C:/Users/Cloud/iCloudDrive/NormalizedSampledFinancial.csv", dataset);
 	arma::rowvec trainingset = dataset.row(0);
 	arma::rowvec responses = dataset.row(dataset.n_rows - 1);
 	vector<double> keys, values;
 	RowvecToVector(trainingset, keys);
 	RowvecToVector(responses, values);
 
-	// ReverseMaxlossOptimal RMLO(100, 0.01, 3);
+	 ReverseMaxlossOptimal RMLO(100, 0.01, 4);
 
-	// vector<double> paras;
-	// double loss;
+	 vector<double> paras;
+	 double loss;
 
-	// auto t0 = chrono::steady_clock::now();
-	// RMLO.SolveMaxlossLP(keys, values, 0, values.size(), paras, loss);
-	// auto t1 = chrono::steady_clock::now();
-	// cout << "total query time in chrono: " << chrono::duration_cast<chrono::nanoseconds>(t1 - t0).count() << " in ns    " << chrono::duration_cast<chrono::nanoseconds>(t1 - t0).count() / (1000 * 1000 * 1000) << "in s" << endl;
+	 auto t0 = chrono::steady_clock::now();
+	 RMLO.SolveMaxlossLP(keys, values, 0, values.size()-1, paras, loss);
+	 auto t1 = chrono::steady_clock::now();
+	 cout << "total query time in chrono: " << chrono::duration_cast<chrono::nanoseconds>(t1 - t0).count() << " in ns    " << chrono::duration_cast<chrono::nanoseconds>(t1 - t0).count() / (1000 * 1000 * 1000) << "in s" << endl;
 
-	// cout << "loss: " << loss << endl;
-	// cout << "paras: (start from a0) " << loss << endl;
-	// // start from a0 TO a3
-	// for (int i = 0; i < paras.size(); i++) {
-	// 	cout << paras[i] << endl;
-	// }
+	 cout << "loss: " << loss << endl;
+	 cout << "paras: (start from a0) " << endl;
+	 // start from a0 TO a3
+	 for (int i = 0; i < paras.size(); i++) {
+	 	cout << paras[i] << endl;
+	 }
 
 	// try this
 	//LinearRegression lr(dataset, responses);
 
-	ROLLearnedIndex_cubic order3(9, 1000, 100);
+	/*ROLLearnedIndex_cubic order3(9, 1000, 100);
 	double a,b,c,d,loss;
-
 	order3.MyCplexSolverForMaxLossCubicOptimized(keys, values, 0, keys.size(), a, b, c, d, loss);
-
 	cout << "a3: " << a << endl;
 	cout << "a2: " << b << endl;
 	cout << "a1: " << c << endl;
 	cout << "a0: " << d << endl;
-	cout << "loss: " << loss << endl;
+	cout << "loss: " << loss << endl;*/
+
+	/*ROLLearnedIndex_quadratic order2(9, 1000, 100);
+	double a, b, c, loss;
+	order2.MyCplexSolverForMaxLossQuadraticOptimized(keys, values, 0, keys.size(), a, b, c, loss);
+	cout << "a2: " << a << endl;
+	cout << "a1: " << b << endl;
+	cout << "a0: " << c << endl;
+	cout << "loss: " << loss << endl;*/
+
+	//StageModelBottomUp order1(9, 1000, 100);
+	//double a, b, loss;
+	//order1.MyCplexSolverForMaxLoss(keys, values, a, b, loss);
+	//cout << "a1: " << a << endl;
+	//cout << "a0: " << b << endl;
+	//cout << "loss: " << loss << endl;
+
 	system("pause");
 }
 

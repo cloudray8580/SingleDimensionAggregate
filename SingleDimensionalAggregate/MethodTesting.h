@@ -101,6 +101,7 @@ QueryResult TestPolyfit_MAX(vector<double> &keys, vector<double> &values, vector
 	RMLO.PrepareMaxAggregateTree(keys, values);
 	RMLO.PrepareExactAggregateMaxTree(keys, values);
 	QueryResult query_result = RMLO.MaxPrediction(queryset_L, queryset_U, predicted_results);
+	//RMLO.ExportDatasetRangeAndModels();
 	return query_result;
 }
 
@@ -149,14 +150,15 @@ QueryResult TestPolyfit_COUNT2D(vector<double> &queryset_L1, vector<double> &que
 	//cout << "Bottom model size: " << model2d.model_rtree.size() << endl;
 	//cout << "Bottom model size: " << model2d.temp_models.size() << endl;
 
-	// try to save models to file
-
 	int AbsErr = int(Tabs);
 	string AbsErrStr = to_string(AbsErr);
 	string filename = "C:/Users/Cloud/Desktop/LearnedAggregateData/2D_LP_models_100M_1000_1000" + AbsErrStr + ".csv";
+
+	// try to save models to file
 	model2d.WriteTrainedModelsToFile(filename);
+
 	// try to read models from file
-	//model2d.ReadTrainedModelsFromFile("C:/Users/Cloud/Desktop/LearnedAggregateData/2D_LP_models_100M_1000_1000.csv");
+	//model2d.ReadTrainedModelsFromFile(filename);
 	//model2d.LoadRtree();
 
 	QueryResult query_result = model2d.CountPrediction2(queryset_L1, queryset_L2, queryset_U1, queryset_U2, predicted_results);
@@ -173,13 +175,17 @@ QueryResult TestPolyfit_COUNT2D_FIXABS(vector<double> &queryset_L1, vector<doubl
 	Maxloss2D_QuadDivide model2d(Tabs, Trel, -180.0, 180.0, -90.0, 90.0);
 	//model2d.GenerateKeysAndAccuFromFile("C:/Users/Cloud/Desktop/LearnedAggregateData/Sampled2D_100M_1000_1000.csv");
 	//model2d.TrainModel();
-	//cout << "Bottom model size: " << model2d.model_rtree.size() << endl;
-	//cout << "Bottom model size: " << model2d.temp_models.size() << endl;
+
+	int AbsErr = int(Tabs);
+	string AbsErrStr = to_string(AbsErr);
+	string filename = "C:/Users/Cloud/Desktop/LearnedAggregateData/2D_LP_models_100M_1000_1000" + AbsErrStr + ".csv";
 
 	// try to save models to file
 	//model2d.WriteTrainedModelsToFile("C:/Users/Cloud/Desktop/LearnedAggregateData/2D_LP_models_100M_1000_1000.csv");
 	// try to read models from file
-	model2d.ReadTrainedModelsFromFile("C:/Users/Cloud/Desktop/LearnedAggregateData/2D_LP_models_100M_1000_1000.csv");
+	//model2d.ReadTrainedModelsFromFile("C:/Users/Cloud/Desktop/LearnedAggregateData/2D_LP_models_100M_1000_1000.csv");
+
+	model2d.ReadTrainedModelsFromFile(filename);
 	model2d.LoadRtree();
 
 	QueryResult query_result = model2d.CountPrediction2(queryset_L1, queryset_L2, queryset_U1, queryset_U2, predicted_results);

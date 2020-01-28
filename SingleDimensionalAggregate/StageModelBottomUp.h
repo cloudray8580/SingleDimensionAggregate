@@ -125,7 +125,7 @@ public:
 
 		slope = cplex.getValue(vars[0]);
 		bias = cplex.getValue(vars[1]);
-
+		cplex.exportModel("C:/Users/Cloud/Desktop/finance_model2.lp");
 		//cout << "the variable a: " << cplex.getValue(vars[0]) << endl;
 		//cout << "the variable b: " << cplex.getValue(vars[1]) << endl;
 		//cout << "the variable max loss: " << cplex.getValue(vars[2]) << endl;

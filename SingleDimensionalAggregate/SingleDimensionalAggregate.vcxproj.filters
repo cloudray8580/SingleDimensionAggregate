@@ -99,6 +99,18 @@
     <ClInclude Include="VLDBFinalExp2.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="VLDBFinalExp3.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="VLDBFinalExp4.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="VLDBFinalExp5.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="VLDBFinalExp6.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">

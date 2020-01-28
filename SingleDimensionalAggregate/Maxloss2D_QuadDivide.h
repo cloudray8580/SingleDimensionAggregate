@@ -265,7 +265,7 @@ public:
 			outfile.write((char*)&temp_models[i].a1, sizeof(double));
 			outfile.write((char*)&temp_models[i].b2, sizeof(double));
 			outfile.write((char*)&temp_models[i].b1, sizeof(double));
-			//outfile.write((char*)&temp_models[i].c, sizeof(double));
+			outfile.write((char*)&temp_models[i].c, sizeof(double));
 			outfile.write((char*)&temp_models[i].bias, sizeof(double));
 
 			outfile.write((char*)&temp_models[i].loss, sizeof(double));
@@ -299,7 +299,7 @@ public:
 			infile.read((char*)&mb.a1, sizeof(double));
 			infile.read((char*)&mb.b2, sizeof(double));
 			infile.read((char*)&mb.b1, sizeof(double));
-			//infile.read((char*)&mb.c, sizeof(double));
+			infile.read((char*)&mb.c, sizeof(double));
 			infile.read((char*)&mb.bias, sizeof(double));
 
 			infile.read((char*)&mb.loss, sizeof(double));
@@ -325,11 +325,11 @@ public:
 	// level start from 1
 	void TrainModelSubRegion(double d1_lower, double d1_upper, double d2_lower, double d2_upper, int level) {
 		
-		//double a2, a1, b2, b1, c, bias, loss;
-		//SolveMaxlossLP2D(keys_v, accumulation_v, d1_lower, d1_upper, d2_lower, d2_upper, a2, a1, b2, b1, c, bias, loss);
+		double a2, a1, b2, b1, c, bias, loss;
+		SolveMaxlossLP2D(keys_v, accumulation_v, d1_lower, d1_upper, d2_lower, d2_upper, a2, a1, b2, b1, c, bias, loss);
 
-		double a2, a1, b2, b1, bias, loss;
-		SolveMaxlossLP2DSimplified(keys_v, accumulation_v, d1_lower, d1_upper, d2_lower, d2_upper, a2, a1, b2, b1, bias, loss);
+		//double a2, a1, b2, b1, bias, loss;
+		//SolveMaxlossLP2DSimplified(keys_v, accumulation_v, d1_lower, d1_upper, d2_lower, d2_upper, a2, a1, b2, b1, bias, loss);
 		// cout << "loss: " << loss << endl;
 
 		// check the max loss
@@ -354,12 +354,12 @@ public:
 			mb.a1 = a1;
 			mb.b2 = b2;
 			mb.b1 = b1;
-			//mb.c = c;
+			mb.c = c;
 			mb.bias = bias;
 			mb.loss = loss;
 			mb.level = level; 
 			temp_models.push_back(mb);
-			//model_rtree.insert(mb);
+			//model_rtree.insert(mb); // insert it in TrainModel()
 		}
 	}
 
@@ -626,6 +626,10 @@ public:
 		query_result.total_query_time = total_time;
 		query_result.measured_absolute_error = MEabs;
 		query_result.measured_relative_error = MErel;
+		query_result.hit_count = d1_low.size() - count_refinement;
+		query_result.model_amount = temp_models.size();
+		//query_result.tree_paras = model_rtree.
+		query_result.total_paras = this->temp_models.size() * 8; // only for models, without the index
 
 		return query_result;
 	}

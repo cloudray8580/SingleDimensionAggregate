@@ -194,6 +194,10 @@ xcopy /y "D:\mlpack3.0.4\mlpack-3.0.4\packages\OpenBLAS.0.2.14.1\lib\native\bin\
     <ClInclude Include="Utils.h" />
     <ClInclude Include="VLDBFinalExp1.h" />
     <ClInclude Include="VLDBFinalExp2.h" />
+    <ClInclude Include="VLDBFinalExp3.h" />
+    <ClInclude Include="VLDBFinalExp4.h" />
+    <ClInclude Include="VLDBFinalExp5.h" />
+    <ClInclude Include="VLDBFinalExp6.h" />
     <ClInclude Include="Wavlet.h" />
   </ItemGroup>
   <ItemGroup>

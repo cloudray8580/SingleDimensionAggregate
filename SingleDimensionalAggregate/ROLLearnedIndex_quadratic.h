@@ -244,16 +244,18 @@ public:
 		IloNumVarArray vars(env);
 		IloRangeArray ranges(env);
 
-		cplex.setOut(env.getNullStream());
+		//cplex.setOut(env.getNullStream());
+
+		cplex.setParam(IloCplex::RootAlg, IloCplex::Primal);
+		//cplex.setParam(IloCplex::RootAlg, IloCplex::Barrier); // set optimizer used interior point method
+		//cplex.setParam(IloCplex::RootAlg, IloCplex::Sifting); // set optimizer used interior point method
+
 
 		// set variable type, IloNumVarArray starts from 0.
 		vars.add(IloNumVar(env, -INFINITY, INFINITY, ILOFLOAT)); // the weight, i.e., a for x^2
 		vars.add(IloNumVar(env, -INFINITY, INFINITY, ILOFLOAT)); // the weight, i.e., b for x
 		vars.add(IloNumVar(env, -INFINITY, INFINITY, ILOFLOAT));      // the bias, i.e., c
-		vars.add(IloNumVar(env, 0.0, INFINITY, ILOFLOAT)); // our target, the max loss
-
-		cplex.setParam(IloCplex::RootAlg, IloCplex::Barrier); // set optimizer used interior point method
-		//cplex.setParam(IloCplex::RootAlg, IloCplex::Sifting); // set optimizer used interior point method
+		vars.add(IloNumVar(env, 0.0, 3000, ILOFLOAT)); // our target, the max loss
 
 		// declare objective
 		obj.setExpr(vars[3]);

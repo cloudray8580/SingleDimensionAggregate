@@ -18,6 +18,8 @@ struct QueryResult {
 	int refinement_count;
 	int total_query_count;
 	int model_amount;
+	int total_paras; // the total minimum paras
+	int tree_paras; // btree or Rtree
 };
 
 void VectorToRowvec(arma::mat& rv, vector<double> &v) {
@@ -535,7 +537,8 @@ void MeasureAccuracy(vector<double> &predicted_results, string filepath, double 
 
 	MEabs = accu_absolute / total_size; 
 	MErel = accu / total_size;
-	//cout << "measured average relative error: " << accu / total_size << endl;
-	//cout << "measured average absolute error: " << accu_absolute / total_size << endl;
+
+	cout << "measured average absolute error: " << MEabs << endl;
+	cout << "measured average relative error: " << MErel << endl;
 }
 

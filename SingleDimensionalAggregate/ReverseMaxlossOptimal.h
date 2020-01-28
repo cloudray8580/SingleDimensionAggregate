@@ -245,21 +245,23 @@ public:
 
 		env.setOut(env.getNullStream());
 		cplex.setOut(env.getNullStream());
-		cplex.setParam(IloCplex::MIPInterval, 1000);
+		//cplex.setParam(IloCplex::MIPInterval, 1000);
 
-		cplex.setParam(IloCplex::NumericalEmphasis, CPX_ON);
-		cplex.setParam(IloCplex::Param::Advance, 0); // turnoff advanced start
-		cplex.setParam(IloCplex::Param::Preprocessing::Presolve, false); // turnoff presolve
+		//cplex.setParam(IloCplex::NumericalEmphasis, CPX_ON);
+		//cplex.setParam(IloCplex::Param::Advance, 0); // turnoff advanced start
+		//cplex.setParam(IloCplex::Param::Preprocessing::Presolve, false); // turnoff presolve
 
-		cplex.setParam(IloCplex::Param::Barrier::Limits::Growth, 1e6);
-		cplex.setParam(IloCplex::Param::Simplex::Tolerances::Feasibility, 1e-9);
-		cplex.setParam(IloCplex::Param::Barrier::ConvergeTol, 1e-12);
+		//cplex.setParam(IloCplex::Param::Barrier::Limits::Growth, 1e6);
+		//cplex.setParam(IloCplex::Param::Simplex::Tolerances::Feasibility, 1e-9);
+		/*cplex.setParam(IloCplex::Param::Barrier::ConvergeTol, 1e-12);
 		cplex.setParam(IloCplex::Param::Read::Scale, 1);
 		cplex.setParam(IloCplex::Param::Simplex::Tolerances::Markowitz, 0.99999);
-		cplex.setParam(IloCplex::Param::MIP::Tolerances::Integrality, 0.0);
+		cplex.setParam(IloCplex::Param::MIP::Tolerances::Integrality, 0.0);*/
 
-		cplex.setParam(IloCplex::RootAlg, IloCplex::Primal); // using simplex
+		cplex.setParam(IloCplex::RootAlg, IloCplex::AutoAlg);
+		//cplex.setParam(IloCplex::RootAlg, IloCplex::Primal); // using simplex 
 		//cplex.setParam(IloCplex::RootAlg, IloCplex::Dual); // using dual simplex
+		//cplex.setParam(IloCplex::RootAlg, IloCplex::Network);
 		//cplex.setParam(IloCplex::RootAlg, IloCplex::Barrier); // set optimizer used interior point method
 		//cplex.setParam(IloCplex::RootAlg, IloCplex::Sifting); // set optimizer used sifting method
 		//cplex.setParam(IloCplex::RootAlg, IloCplex::Concurrent);
@@ -270,7 +272,7 @@ public:
 			vars.add(IloNumVar(env, -INFINITY, INFINITY, ILOFLOAT));  // the weight, i.e., a2 for x^2, start from the lowest, i.e., a0, to an
 		}
 		IloNumVar target(env, 0.0, INFINITY, ILOFLOAT); // the max loss value
-
+		//IloNumVar target(env, 0.0, 10000, ILOFLOAT); // the max loss value
 
 		// declare objective
 		obj.setExpr(target);
@@ -317,13 +319,17 @@ public:
 		}
 		IloNum endtime_ = cplex.getTime();
 		
-		//cplex.exportModel("C:/Users/Cloud/Desktop/range392.sav");
+		//cplex.exportModel("C:/Users/Cloud/Desktop/finance_model.sav");
+		//cplex.exportModel("C:/Users/Cloud/Desktop/finance_model.lp");
+
 		loss = cplex.getObjValue();
 
 		paras.clear();
 		for (int i = 0; i <= this->highest_term; i++) {
 			paras.push_back(cplex.getValue(vars[i]));
 		}
+
+		//cout << "status: " << cplex.getStatus() << endl;
 
 		//cout << "the variable a: " << cplex.getValue(vars[0]) << endl;
 		//cout << "the variable b: " << cplex.getValue(vars[1]) << endl;
@@ -578,13 +584,14 @@ public:
 
 			// 2. segment exponential search
 
+			cone_shift_index--; // backward
 			shift_index = cone_shift_index;
 
 			if (shift_index >= TOTAL_SIZE) {
 				shift_index = TOTAL_SIZE - 1;
 			}
 
-			int Co = shift_index - origin_index;
+			int Co = shift_index - origin_index + 1; // the covered points
 			if (option == 0) {
 				SolveMaxlossLP(key_v, position_v, origin_index, shift_index, model, current_absolute_accuracy);
 			}
@@ -595,7 +602,7 @@ public:
 			//cout << "current max error: " << current_absolute_accuracy << endl;
 			while (current_absolute_accuracy < t_abs && shift_index < TOTAL_SIZE - 1) {
 				Co *= 2;
-				shift_index = origin_index + Co;
+				shift_index = origin_index + Co - 1; // the last covered point
 				if (shift_index >= TOTAL_SIZE) {
 					shift_index = TOTAL_SIZE - 1;
 				}
@@ -615,8 +622,8 @@ public:
 				// stop
 			}
 			else {
-				int Ilow = origin_index + Co / 2, Ihigh = shift_index, Middle;
-				while (Ihigh - Ilow > 1) {
+				int Ilow = origin_index + Co / 2 - 1, Ihigh = shift_index, Middle; // Ilow: the original last covered point
+				while (Ihigh - Ilow > 0) { // when exit, Ilow = Ihigh
 					Middle = (Ilow + Ihigh) / 2;
 
 					shift_index = Middle;
@@ -629,13 +636,19 @@ public:
 					}
 					//cout << "current max error: " << current_absolute_accuracy << endl;
 					if (current_absolute_accuracy > t_abs) {
-						Ihigh = Middle;
+						Ihigh = Middle-1; // notice this !, this point should not be included
 					}
 					else {
+						if (Ilow == Middle) { //L = U -1 && L is OK
+							break;
+						}
 						Ilow = Middle;
 					}
 				}
-				if (current_absolute_accuracy > t_abs) {
+				Middle = (Ilow + Ihigh) / 2;
+				shift_index = Middle;
+
+				/*if (current_absolute_accuracy > t_abs) {
 					shift_index = Ilow;
 					if (option == 0) {
 						SolveMaxlossLP(key_v, position_v, origin_index, shift_index, model, current_absolute_accuracy);
@@ -643,7 +656,7 @@ public:
 					else if (option == 1) {
 						SketchFiting(key_v, position_v, origin_index, shift_index, model, current_absolute_accuracy);
 					}
-				}
+				}*/
 			}
 			//cout << "current max error: " << current_absolute_accuracy << endl;
 
@@ -743,7 +756,13 @@ public:
 
 	// the dataset have been sorted by key
 	void PrepareMaxAggregateTree(vector<double> &keys, vector<double> values) {
-		
+		 
+		//cout << "Tree slot size: " << bottom_layer_index.size() << " dataset range: " << dataset_range.size() << endl;
+		//cout << "parameters size: " << model_parameters.size() << endl;
+
+		// assign the boundary info to the key, do it before assign aggregate info
+		bottom_layer_index.AssignBoundaryToLeafNodes(dataset_range);
+
 		// generate the aggregate_max for each model
 		int model_index = 0;
 		double model_max = 0; // no negative value
@@ -761,8 +780,11 @@ public:
 				model_index += 1;
 			}
 		}
+		model_maxes.push_back(model_max); // for the last one
+
 
 		// assign the agggregate max values to each slot data of the index's leaf nodes
+		//cout << "model_max count: " << model_maxes.size() << endl;
 		bottom_layer_index.AssignAggregateMaxToLeafNodes(model_maxes);
 
 
@@ -888,10 +910,15 @@ public:
 		// for each range query pair
 		for (int i = 0; i < queryset_low.size(); i++) {
 
+			/*if (i == 4) {
+				cout << "here" << endl;
+			}*/
+
 			// handle left boundary, this part could be actually embed into the tree, and hence the time for a traverse with tree height n-1 could be deducted
 			iter = this->bottom_layer_index.upper_bound(queryset_low[i]);
 			iter--;
 			model_index = iter->second;
+			//cout << "left model: " << model_index << endl;
 			left_boundary = dataset_range[model_index].second;
 			if (slopes[model_index] > 0) {
 				// prediction at right boundary
@@ -903,13 +930,14 @@ public:
 			}
 
 			// handle right boundary, this part could be actually embed into the tree, and hence the time for a traverse with tree height n-1 could be deducted
-			iter = this->bottom_layer_index.upper_bound(queryset_low[i]);
+			iter = this->bottom_layer_index.upper_bound(queryset_up[i]);
 			iter--;
 			model_index = iter->second;
+			//cout << "right model: " << model_index << endl;
 			right_boundary = dataset_range[model_index].first;
 			if (slopes[model_index] > 0) {
 				// prediction at query key
-				max_upper = queryset_low[i] * model_parameters[model_index][1] + model_parameters[model_index][0];
+				max_upper = queryset_up[i] * model_parameters[model_index][1] + model_parameters[model_index][0];
 			}
 			else {
 				// prediction at left boundary
@@ -921,21 +949,30 @@ public:
 			// handle middle
 			result = bottom_layer_index.our_max_query(left_boundary, right_boundary); // such that the query do not handle both sides
 
+			//cout << "max left boundary: " << max_lower << endl;
+			//cout << "max right boundary: " << max_upper << endl;
+			//cout << "side max: " << side_max << endl;
+			//cout << "inner max: " << result << endl;
+
 			result = side_max > result ? side_max : result;
+
+			//cout << "result after compared with side max: " << result << endl;
 
 			// check relative error condition
 			condition = t_abs * (1 + 1 / t_rel);
-			if (result >= condition) {
+			//cout << "condition value: " << condition << endl;
+			if (result < condition) { // if result greater than the right side, it's a hit
 				count_refinement++;
 				// do refinement
-				aggregate_max_tree.max_query(queryset_low[i], queryset_up[i]);
+				result = aggregate_max_tree.max_query(queryset_low[i], queryset_up[i]);
+				//cout << "do refinement: " << i << " query" << endl;
 			}
 
+			//cout << "result after compared with side max: " << result << endl;
+			//cout << "==============" << endl;
 			results.push_back(result);
 		}
 		auto t1 = chrono::steady_clock::now();
-		/*cout << "Total Time in chrono: " << chrono::duration_cast<chrono::nanoseconds>(t1 - t0).count() << " ns" << endl;
-		cout << "Average Time in chrono: " << chrono::duration_cast<chrono::nanoseconds>(t1 - t0).count() / (queryset_low.size()) << " ns" << endl;*/
 
 		auto average_time = chrono::duration_cast<chrono::nanoseconds>(t1 - t0).count() / queryset_low.size();
 		auto total_time = chrono::duration_cast<chrono::nanoseconds>(t1 - t0).count();
@@ -952,15 +989,25 @@ public:
 		query_result.refinement_count = count_refinement;
 		query_result.total_query_count = queryset_low.size();
 		query_result.model_amount = dataset_range.size();
+		query_result.tree_paras = this->bottom_layer_index.CountParametersMax();
+		query_result.total_paras = this->dataset_range.size() * (3 + this->highest_term) + query_result.tree_paras;
+
+		// export query result to file
+		ofstream outfile_result;
+		outfile_result.open("C:/Users/Cloud/iCloudDrive/LearnedAggregate/VLDB_Final_Experiments/RunResults/MAX_QueryResult.csv");
+		for (int i = 0; i < results.size(); i++) {
+			outfile_result << results[i] << endl;
+		}
 
 		return query_result;
+	}
 
-		// record experiment result;
-		ofstream outfile_exp;
-		outfile_exp.open("C:/Users/Cloud/iCloudDrive/LearnedAggregate/VLDB_Final_Experiments/RunResults/MAX_refined.csv", std::ios_base::app);
-		outfile_exp << chrono::duration_cast<chrono::nanoseconds>(t1 - t0).count() / (queryset_low.size()) << endl;
-		outfile_exp << endl;
-		outfile_exp.close();
+	void ExportDatasetRangeAndModels() {
+		ofstream outfile_result;
+		outfile_result.open("C:/Users/Cloud/iCloudDrive/LearnedAggregate/VLDB_Final_Experiments/RunResults/MAX_Models.csv", std::ios_base::app);
+		for (int i = 0; i < dataset_range.size(); i++) {
+			outfile_result << dataset_range[i].first << "," << dataset_range[i].second << "," << index_range[i].first << "," << index_range[i].second << "," << model_parameters[i][0] << "," << model_parameters[i][1] << endl;
+		}
 	}
 
 	// without refinement
@@ -1173,6 +1220,9 @@ public:
 		query_result.total_query_time = total_time;
 		query_result.measured_absolute_error = MEabs;
 		query_result.measured_relative_error = MErel;
+		query_result.model_amount = dataset_range.size();
+		query_result.tree_paras = this->bottom_layer_index.CountParametersPrimary();
+		query_result.total_paras = this->dataset_range.size() * (3 + this->highest_term) + query_result.tree_paras;
 
 		return query_result;
 	}
