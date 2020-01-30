@@ -48,7 +48,7 @@ void VLDB_Final_Experiment_2_COUNT() {
 	}
 	//store it in file
 	for (int i = 0; i < QSS.size(); i++) {
-		run_result << QSS[i].average_query_time << "," << QSS[i].total_query_time << "," << QSS[i].measured_absolute_error << "," << QSS[i].measured_relative_error << endl;
+		run_result << QSS[i].average_query_time << "," << QSS[i].total_query_time << "," << QSS[i].measured_absolute_error << "," << QSS[i].measured_relative_error << "," << QSS[i].hit_count << endl;
 	}
 	run_result << endl;
 
@@ -62,7 +62,7 @@ void VLDB_Final_Experiment_2_COUNT() {
 	}
 	//store it in file
 	for (int i = 0; i < QSS.size(); i++) {
-		run_result << QSS[i].average_query_time << "," << QSS[i].total_query_time << "," << QSS[i].measured_absolute_error << "," << QSS[i].measured_relative_error << endl;
+		run_result << QSS[i].average_query_time << "," << QSS[i].total_query_time << "," << QSS[i].measured_absolute_error << "," << QSS[i].measured_relative_error << "," << QSS[i].hit_count << endl;
 	}
 	run_result << endl;
 
@@ -76,7 +76,7 @@ void VLDB_Final_Experiment_2_COUNT() {
 	}
 	//store it in file
 	for (int i = 0; i < QSS.size(); i++) {
-		run_result << QSS[i].average_query_time << "," << QSS[i].total_query_time << "," << QSS[i].measured_absolute_error << "," << QSS[i].measured_relative_error << endl;
+		run_result << QSS[i].average_query_time << "," << QSS[i].total_query_time << "," << QSS[i].measured_absolute_error << "," << QSS[i].measured_relative_error << "," << QSS[i].hit_count << endl;
 	}
 	run_result << endl;
 
@@ -147,12 +147,12 @@ void VLDB_Final_Experiment_2_COUNT2D() {
 	// Polyfit, use its own accumulation dataset, set in its own method
 	for (int i = 0; i < Erel_collection.size(); i++) {
 		Erel = Erel_collection[i];
-		QS = TestPolyfit_COUNT2D_FIXABS(query_low1, query_low2, query_up1, query_up2, Erel, 1000);
+		QS = TestPolyfit_COUNT2D_FIXABS(keys1, keys2, query_low1, query_low2, query_up1, query_up2, Erel, 1000);
 		QSS.push_back(QS);
 	}
 	//store it in file
 	for (int i = 0; i < QSS.size(); i++) {
-		run_result << QSS[i].average_query_time << "," << QSS[i].total_query_time << "," << QSS[i].measured_absolute_error << "," << QSS[i].measured_relative_error << "," << QSS[i].hit_count << "," << endl;
+		run_result << QSS[i].average_query_time << "," << QSS[i].total_query_time << "," << QSS[i].measured_absolute_error << "," << QSS[i].measured_relative_error << "," << QSS[i].hit_count << endl;
 	}
 	run_result << endl;
 

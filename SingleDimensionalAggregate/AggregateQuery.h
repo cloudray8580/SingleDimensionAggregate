@@ -22,6 +22,23 @@
 
 using namespace std;
 
+void Approximate2D() {
+	Maxloss2D_QuadDivide model2d(1000, 0.01, -180.0, 180.0, -90.0, 90.0);
+	double a2, a1, b2, b1, c, d, loss;
+	//model2d.GenerateKeysAndAccuFromFile("C:/Users/Cloud/iCloudDrive/LearnedAggregate/Sampled2D_100M_1000_1000_ADJUSTED.csv");
+	model2d.GenerateKeysAndAccuFromFile("C:/Users/Cloud/iCloudDrive/LearnedAggregate/Sampled2D_100M_1000_1000_rounded.csv");
+	model2d.SolveMaxlossLP2D(model2d.keys_v, model2d.accumulation_v, -180, 180, -90, 90, a2, a1, b2, b1, c, d, loss);
+	cout << model2d.keys_v.size() << " " << model2d.accumulation_v.size() << endl;
+	cout << "a2 = " << a2 << endl;
+	cout << "a1 = " << a1 << endl;
+	cout << "b2 = " << b2 << endl;
+	cout << "b1 = " << b1 << endl;
+	cout << "c = " << c << endl;
+	cout << "d = " << d << endl;
+	cout << "loss = " << loss << endl;
+
+}
+
 void Approximate1DMax(){
 	mat dataset;
 	//bool loaded = mlpack::data::Load("C:/Users/Cloud/iCloudDrive/SampledFinancial.csv", dataset);
@@ -29,28 +46,35 @@ void Approximate1DMax(){
 	arma::rowvec trainingset = dataset.row(0);
 	arma::rowvec responses = dataset.row(dataset.n_rows - 1);
 	vector<double> keys, values;
-	RowvecToVector(trainingset, keys);
-	RowvecToVector(responses, values);
+	//RowvecToVector(trainingset, keys);
+	//RowvecToVector(responses, values);
 
-	 ReverseMaxlossOptimal RMLO(100, 0.01, 4);
+	 //ReverseMaxlossOptimal RMLO(100, 0.01, 4);
 
-	 vector<double> paras;
-	 double loss;
+	 //vector<double> paras;
+	 //double loss;
 
-	 auto t0 = chrono::steady_clock::now();
-	 RMLO.SolveMaxlossLP(keys, values, 0, values.size()-1, paras, loss);
-	 auto t1 = chrono::steady_clock::now();
-	 cout << "total query time in chrono: " << chrono::duration_cast<chrono::nanoseconds>(t1 - t0).count() << " in ns    " << chrono::duration_cast<chrono::nanoseconds>(t1 - t0).count() / (1000 * 1000 * 1000) << "in s" << endl;
+	 //auto t0 = chrono::steady_clock::now();
+	 //RMLO.SolveMaxlossLP(keys, values, 0, values.size()-1, paras, loss);
+	 //auto t1 = chrono::steady_clock::now();
+	 //cout << "total query time in chrono: " << chrono::duration_cast<chrono::nanoseconds>(t1 - t0).count() << " in ns    " << chrono::duration_cast<chrono::nanoseconds>(t1 - t0).count() / (1000 * 1000 * 1000) << "in s" << endl;
 
-	 cout << "loss: " << loss << endl;
-	 cout << "paras: (start from a0) " << endl;
-	 // start from a0 TO a3
-	 for (int i = 0; i < paras.size(); i++) {
-	 	cout << paras[i] << endl;
-	 }
+	 //cout << "loss: " << loss << endl;
+	 //cout << "paras: (start from a0) " << endl;
+	 //// start from a0 TO a3
+	 //for (int i = 0; i < paras.size(); i++) {
+	 //	cout << paras[i] << endl;
+	 //}
 
 	// try this
-	//LinearRegression lr(dataset, responses);
+	LinearRegression lr(trainingset, responses);
+	arma::vec lr_paras = lr.Parameters();
+	double a, b;
+	a = lr_paras[1]; // a
+	b = lr_paras[0]; // b
+
+	cout << "a =" << a << endl;
+	cout << "b =" << b << endl;
 
 	/*ROLLearnedIndex_cubic order3(9, 1000, 100);
 	double a,b,c,d,loss;

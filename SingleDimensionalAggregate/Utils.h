@@ -120,7 +120,7 @@ void LoadOSMDataset(vector<double> &key1, vector<double> &key2) {
 
 void LoadOSMQuerySet(vector<double> &d1_low, vector<double> &d2_low, vector<double> &d1_up, vector<double> &d2_up) {
 	arma::mat queryset;
-	mlpack::data::Load("C:/Users/Cloud/iCloudDrive/Queries2D_mean_18_9_sigma_36_18_normalized.csv", queryset); // d1_low, d2_low, d1_up, d2_up
+	mlpack::data::Load("C:/Users/Cloud/iCloudDrive/Queries2D_mean_18_9_sigma_36_18_normalized2.csv", queryset); // d1_low, d2_low, d1_up, d2_up
 
 	RowvecToVector(queryset.row(0), d1_low);
 	RowvecToVector(queryset.row(1), d2_low);
@@ -184,7 +184,7 @@ void FindExactResultByScan2() {
 	RowvecToVector(key2_row, x2_v);
 
 	arma::mat queryset;
-	mlpack::data::Load("C:/Users/Cloud/iCloudDrive/Queries2D_mean_18_9_sigma_36_18_normalized.csv", queryset); // d1_low, d2_low, d1_up, d2_up
+	mlpack::data::Load("C:/Users/Cloud/iCloudDrive/Queries2D_mean_18_9_sigma_36_18_normalized2.csv", queryset); // d1_low, d2_low, d1_up, d2_up
 	vector<double> d1_low, d2_low, d1_up, d2_up;
 	RowvecToVector(queryset.row(0), d1_low);
 	RowvecToVector(queryset.row(1), d2_low);
@@ -213,6 +213,127 @@ void FindExactResultByScan2() {
 		outfile << real_results[i] << endl;
 	}
 	outfile.close();
+}
+
+// the python version is incorrect
+void Generate2DSampling(int sample_k1, int sample_k2) {
+	arma::mat dataset;
+	mlpack::data::Load("C:/Users/Cloud/Desktop/LearnedAggregateData/Sorted2DimTrainingSet_Long_Lat_100M.csv", dataset);
+	arma::rowvec key1_row = dataset.row(0);
+	arma::rowvec key2_row = dataset.row(1);
+	vector<double> x1_v, x2_v;
+	RowvecToVector(key1_row, x1_v); // lon
+	RowvecToVector(key2_row, x2_v); // lat
+
+	vector<vector<int>> cumulative_count; // should be 1K*1K
+	// initialization
+	for (int i = 0; i < sample_k1; i++) {
+		vector<int> inner;
+		for (int j = 0; j < sample_k2; j++) {
+			inner.push_back(0);
+		}
+		cumulative_count.push_back(inner);
+	}
+
+	double step_size_1 = 360.0 / sample_k1;
+	double step_size_2 = 180.0 / sample_k2;
+
+	double upper_k1;
+	double upper_k2;
+
+	int bucket_1, bucket_2;
+
+	// assign the entire dataset to each bucket
+	for (int i = 0; i < x1_v.size(); i++) {
+		// calculate which bucket it belongs to
+		bucket_1 = (x1_v[i] - (-180.0)) / step_size_1;
+		bucket_2 = (x2_v[i] - (-90.0)) / step_size_2;
+		if (bucket_1 == sample_k1) {
+			bucket_1 = sample_k1 - 1;
+		}
+		if (bucket_2 == sample_k2) {
+			bucket_2 = sample_k2 - 1;
+		}
+		cumulative_count[bucket_1][bucket_2] += 1;
+	}
+	
+	// process vertical cumulative. i.e., accu count on key2
+	for (int i = 0; i < sample_k1; i++) {
+		for (int j = 1; j < sample_k2; j++) {
+			cumulative_count[i][j] += cumulative_count[i][j-1];
+		}
+	}
+
+	// process horizontal cumulative, i.e., accu on key1
+	for (int j = 0; j < sample_k2; j++) {
+		for (int i = 1; i < sample_k1; i++) {
+			cumulative_count[i][j] += cumulative_count[i-1][j];
+		}
+	}
+
+	// save the cumulative count to file
+	ofstream outfile_result;
+	outfile_result.open("C:/Users/Cloud/iCloudDrive/LearnedAggregate/COUNT2D_SAMPLING_OSM_1K_1K.csv");
+	for (int i = 0; i < sample_k1; i++) {
+		upper_k1 = -180 + step_size_1 * (i + 1);
+		for (int j = 0; j < sample_k2; j++) {
+			upper_k2 = -90 + step_size_2 * (j + 1);
+			outfile_result << upper_k1 << "," << upper_k2 << "," << cumulative_count[i][j] << endl;
+		}
+	}
+}
+
+void SpecificScan() {
+	arma::mat dataset;
+	mlpack::data::Load("C:/Users/Cloud/Desktop/LearnedAggregateData/Sorted2DimTrainingSet_Long_Lat_100M.csv", dataset); // first key longitude, second key latitude
+	arma::rowvec key1_row = dataset.row(0);
+	arma::rowvec key2_row = dataset.row(1);
+	vector<double> x1_v, x2_v;
+	RowvecToVector(key1_row, x1_v);
+	RowvecToVector(key2_row, x2_v);
+
+	//arma::mat queryset;
+	//mlpack::data::Load("C:/Users/Cloud/iCloudDrive/Queries2D_mean_18_9_sigma_36_18_normalized2.csv", queryset); // d1_low, d2_low, d1_up, d2_up
+	//vector<double> d1_low, d2_low, d1_up, d2_up;
+	//RowvecToVector(queryset.row(0), d1_low);
+	//RowvecToVector(queryset.row(1), d2_low);
+	//RowvecToVector(queryset.row(2), d1_up);
+	//RowvecToVector(queryset.row(3), d2_up);
+
+	//vector<double> real_results;
+
+	int count;
+	count = 0;
+	for (int j = 0; j < x1_v.size(); j++) {
+		if (x1_v[j] >= -180 && x1_v[j] <= -136.44 && x2_v[j] >= -90 && x2_v[j] <= 29.7) {
+			count++;
+		}
+	}
+	cout << "cout1: " << count << endl;
+
+	count = 0;
+	for (int j = 0; j < x1_v.size(); j++) {
+		if (x1_v[j] >= -180 && x1_v[j] <= -34.92 && x2_v[j] >= -90 && x2_v[j] <= 49.32) {
+			count++;
+		}
+	}
+	cout << "cout2: " << count << endl;
+
+	count = 0;
+	for (int j = 0; j < x1_v.size(); j++) {
+		if (x1_v[j] >= -180 && x1_v[j] <= -136.44 && x2_v[j] >= -90 && x2_v[j] <= 49.32) {
+			count++;
+		}
+	}
+	cout << "cout3: " << count << endl;
+
+	count = 0;
+	for (int j = 0; j < x1_v.size(); j++) {
+		if (x1_v[j] >= -180 && x1_v[j] <= -34.92 && x2_v[j] >= -90 && x2_v[j] <= 29.7) {
+			count++;
+		}
+	}
+	cout << "cout4: " << count << endl;
 }
 
 // ====================================================================================================
@@ -502,8 +623,8 @@ void MeasureAccuracy(vector<int> &predicted_results, string filepath, double &ME
 		est_rel_err = MeasureEstimatedRelativeError(predicted_results[i], 100);
 	}
 
-	MEabs = accu / total_size;
-	MErel = accu_absolute / total_size;
+	MEabs = accu_absolute / total_size;
+	MErel =  accu / total_size;
 	//cout << "measured average relative error: " << accu / total_size << endl;
 	//cout << "measured average absolute error: " << accu_absolute / total_size << endl;
 }

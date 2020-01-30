@@ -15,7 +15,7 @@ void VLDB_Final_Experiment_1_COUNT() {
 
 	vector<double> keys, values, query_low, query_up;
 	LoadTweetDataset(keys, values);
-	LoadTweetQuerySet(query_low, query_up);
+	LoadTweetQuerySet(query_low, query_up); 
 
 	double Eabs = 100;
 	vector<double> Eabs_collection = { 50, 100, 200, 500, 1000 };
@@ -26,17 +26,17 @@ void VLDB_Final_Experiment_1_COUNT() {
 	std::ofstream run_result;
 	run_result.open("C:/Users/Cloud/iCloudDrive/LearnedAggregate/VLDB_Final_Experiments/RunResults/Exp1_COUNT.csv", std::ios::app);
 
-	// S2 sampling
-	for (int i = 0; i < Eabs_collection.size(); i++) {
-		Eabs = Eabs_collection[i];
-		QS = TestS2Sampling1D(keys, query_low, query_up, 0.9, 0.01, Eabs); // probability= 0.9, Trel = 0.01, double Tabs = 100
-		QSS.push_back(QS);
-	}
-	//store it in file
-	for (int i = 0; i < QSS.size(); i++) {
-		run_result << QSS[i].average_query_time << "," << QSS[i].total_query_time << "," << QSS[i].measured_absolute_error << "," << QSS[i].measured_relative_error << endl;
-	}
-	run_result << endl;
+	//// S2 sampling
+	//for (int i = 0; i < Eabs_collection.size(); i++) {
+	//	Eabs = Eabs_collection[i];
+	//	QS = TestS2Sampling1D(keys, query_low, query_up, 0.9, 0.01, Eabs); // probability= 0.9, Trel = 0.01, double Tabs = 100
+	//	QSS.push_back(QS);
+	//}
+	////store it in file
+	//for (int i = 0; i < QSS.size(); i++) {
+	//	run_result << QSS[i].average_query_time << "," << QSS[i].total_query_time << "," << QSS[i].measured_absolute_error << "," << QSS[i].measured_relative_error << endl;
+	//}
+	//run_result << endl;
 
 
 	// FITingTree
@@ -62,12 +62,11 @@ void VLDB_Final_Experiment_1_COUNT() {
 	}
 	//store it in file
 	for (int i = 0; i < QSS.size(); i++) {
-		run_result << QSS[i].average_query_time << "," << QSS[i].total_query_time << "," << QSS[i].measured_absolute_error << "," << QSS[i].measured_relative_error << endl;
+		run_result << QSS[i].average_query_time << "," << QSS[i].total_query_time << "," << QSS[i].measured_absolute_error << "," << QSS[i].measured_relative_error << "," << QSS[i].hit_count << "," << QSS[i].total_paras << endl;
 	}
 	run_result << endl;
 
-
-	// Polyfit 
+	//Polyfit-1
 	QSS.clear();
 	for (int i = 0; i < Eabs_collection.size(); i++) {
 		Eabs = Eabs_collection[i];
@@ -76,7 +75,33 @@ void VLDB_Final_Experiment_1_COUNT() {
 	}
 	//store it in file
 	for (int i = 0; i < QSS.size(); i++) {
-		run_result << QSS[i].average_query_time << "," << QSS[i].total_query_time << "," << QSS[i].measured_absolute_error << "," << QSS[i].measured_relative_error << "," << QSS[i].total_paras << endl;
+		run_result << QSS[i].average_query_time << "," << QSS[i].total_query_time << "," << QSS[i].measured_absolute_error << "," << QSS[i].measured_relative_error << "," << QSS[i].total_paras << "," << QSS[i].hit_count << "," << QSS[i].model_amount << endl;
+	}
+	run_result << endl;
+
+	// Polyfit-2
+	QSS.clear();
+	for (int i = 0; i < Eabs_collection.size(); i++) {
+		Eabs = Eabs_collection[i];
+		QS = TestPolyfit(keys, values, query_low, query_up, 0.01, Eabs, 2); // probability= 0.9, Trel = 0.01, double Tabs = 100, int highest_term
+		QSS.push_back(QS);
+	}
+	//store it in file
+	for (int i = 0; i < QSS.size(); i++) {
+		run_result << QSS[i].average_query_time << "," << QSS[i].total_query_time << "," << QSS[i].measured_absolute_error << "," << QSS[i].measured_relative_error << "," << QSS[i].total_paras << "," << QSS[i].hit_count << "," << QSS[i].model_amount << endl;
+	}
+	run_result << endl;
+
+	// Polyfit-3
+	QSS.clear();
+	for (int i = 0; i < Eabs_collection.size(); i++) {
+		Eabs = Eabs_collection[i];
+		QS = TestPolyfit(keys, values, query_low, query_up, 0.01, Eabs, 3); // probability= 0.9, Trel = 0.01, double Tabs = 100, int highest_term
+		QSS.push_back(QS);
+	}
+	//store it in file
+	for (int i = 0; i < QSS.size(); i++) {
+		run_result << QSS[i].average_query_time << "," << QSS[i].total_query_time << "," << QSS[i].measured_absolute_error << "," << QSS[i].measured_relative_error << "," << QSS[i].total_paras << "," << QSS[i].hit_count << "," << QSS[i].model_amount << endl;
 	}
 	run_result << endl;
 
@@ -91,7 +116,8 @@ void VLDB_Final_Experiment_1_MAX() {
 	LoadHKIQuerySet(query_low, query_up);
 
 	double Eabs = 100;
-	vector<double> Eabs_collection = { 50, 100, 200, 500, 1000 };
+	vector<double> Eabs_collection = { 50, 100, 250, 500, 1000 };
+	//vector<double> Eabs_collection = { 250, 500, 1000 };
 	//vector<double> Eabs_collection = { 50, 100 };
 	//vector<double> Eabs_collection = { 100 };
 
@@ -130,6 +156,7 @@ void VLDB_Final_Experiment_1_COUNT2D() {
 
 	double Eabs = 100;
 	vector<double> Eabs_collection = { 500, 1000, 2000 };
+	//vector<double> Eabs_collection = { 1000};
 
 	QueryResult QS;
 	vector<QueryResult> QSS;
@@ -153,12 +180,12 @@ void VLDB_Final_Experiment_1_COUNT2D() {
 	// Polyfit, use its own accumulation dataset, set in its own method
 	for (int i = 0; i < Eabs_collection.size(); i++) {
 		Eabs = Eabs_collection[i];
-		QS = TestPolyfit_COUNT2D(query_low1, query_low2, query_up1, query_up2, 0.01, Eabs);
+		QS = TestPolyfit_COUNT2D(keys1, keys2, query_low1, query_low2, query_up1, query_up2, 0.01, Eabs);
 		QSS.push_back(QS);
 	}
 	//store it in file
 	for (int i = 0; i < QSS.size(); i++) {
-		run_result << QSS[i].average_query_time << "," << QSS[i].total_query_time << "," << QSS[i].measured_absolute_error << "," << QSS[i].measured_relative_error << "," << QSS[i].hit_count << "," << QSS[i].total_paras << endl;
+		run_result << QSS[i].average_query_time << "," << QSS[i].total_query_time << "," << QSS[i].measured_absolute_error << "," << QSS[i].measured_relative_error << "," << QSS[i].hit_count << "," << QSS[i].total_paras << "," << QSS[i].model_amount << endl;
 	}
 	run_result << endl;
 

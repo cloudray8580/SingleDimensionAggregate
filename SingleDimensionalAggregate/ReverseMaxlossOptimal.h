@@ -247,7 +247,7 @@ public:
 		cplex.setOut(env.getNullStream());
 		//cplex.setParam(IloCplex::MIPInterval, 1000);
 
-		//cplex.setParam(IloCplex::NumericalEmphasis, CPX_ON);
+		cplex.setParam(IloCplex::NumericalEmphasis, CPX_ON);
 		//cplex.setParam(IloCplex::Param::Advance, 0); // turnoff advanced start
 		//cplex.setParam(IloCplex::Param::Preprocessing::Presolve, false); // turnoff presolve
 
@@ -258,8 +258,8 @@ public:
 		cplex.setParam(IloCplex::Param::Simplex::Tolerances::Markowitz, 0.99999);
 		cplex.setParam(IloCplex::Param::MIP::Tolerances::Integrality, 0.0);*/
 
-		cplex.setParam(IloCplex::RootAlg, IloCplex::AutoAlg);
-		//cplex.setParam(IloCplex::RootAlg, IloCplex::Primal); // using simplex 
+		//cplex.setParam(IloCplex::RootAlg, IloCplex::AutoAlg);
+		cplex.setParam(IloCplex::RootAlg, IloCplex::Primal); // using simplex 
 		//cplex.setParam(IloCplex::RootAlg, IloCplex::Dual); // using dual simplex
 		//cplex.setParam(IloCplex::RootAlg, IloCplex::Network);
 		//cplex.setParam(IloCplex::RootAlg, IloCplex::Barrier); // set optimizer used interior point method
@@ -989,7 +989,7 @@ public:
 		query_result.refinement_count = count_refinement;
 		query_result.total_query_count = queryset_low.size();
 		query_result.model_amount = dataset_range.size();
-		query_result.tree_paras = this->bottom_layer_index.CountParametersMax();
+		query_result.tree_paras = this->bottom_layer_index.CountParametersNewPrimary(true);
 		query_result.total_paras = this->dataset_range.size() * (3 + this->highest_term) + query_result.tree_paras;
 
 		// export query result to file
@@ -1221,7 +1221,9 @@ public:
 		query_result.measured_absolute_error = MEabs;
 		query_result.measured_relative_error = MErel;
 		query_result.model_amount = dataset_range.size();
-		query_result.tree_paras = this->bottom_layer_index.CountParametersPrimary();
+		query_result.hit_count = queryset_low.size() - count_refinement;
+		query_result.model_amount = this->dataset_range.size();
+		query_result.tree_paras = this->bottom_layer_index.CountParametersNewPrimary(false);
 		query_result.total_paras = this->dataset_range.size() * (3 + this->highest_term) + query_result.tree_paras;
 
 		return query_result;

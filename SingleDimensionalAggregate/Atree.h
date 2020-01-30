@@ -452,7 +452,7 @@ public:
 		query_result.measured_absolute_error = MEabs;
 		query_result.measured_relative_error = MErel;
 		query_result.model_amount = dataset_range.size();
-		query_result.tree_paras = this->bottom_layer_index.CountParametersPrimary();
+		query_result.tree_paras = this->bottom_layer_index.CountParametersNewPrimary(false);
 		query_result.total_paras = this->dataset_range.size() * 4 + query_result.tree_paras;
 
 		return query_result;

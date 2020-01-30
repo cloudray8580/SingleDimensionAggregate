@@ -479,9 +479,26 @@ class StageModel {
 		query_result.total_query_time = total_time;
 		query_result.measured_absolute_error = MEabs;
 		query_result.measured_relative_error = MErel;
+		query_result.hit_count = queryset_low.size() - count_refinement;
+		query_result.total_paras = this->CountTotalParameters();
 
 		return query_result;
 	}
+
+	int CountTotalParameters() {
+		int count = 0;
+		for (int i = 0; i < stage_model_parameters.size() - 1; i++) {
+			count += stage_model_parameters[i].size() * 2; //a and b 
+		}
+		for (int i = 0; i < replacement_btree_index.size(); i++) {
+			if (replacement_btree_index[i] != -1) {
+				count += this->replaced_btree[replacement_btree_index[i]].CountParametersNewPrimary(false);
+				count -= 2;
+			}
+		}
+		return count;
+	}
+
 
 	// using NN as the first layer
 	void PredictVectorWithNN(vector<double> &queryset, vector<double> &results) {

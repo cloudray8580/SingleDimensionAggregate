@@ -26,9 +26,6 @@ void VLDB_Final_Experiment_6_COUNT() {
 	std::ofstream run_result;
 	run_result.open("C:/Users/Cloud/iCloudDrive/LearnedAggregate/VLDB_Final_Experiments/RunResults/Exp6_COUNT.csv", std::ios::app);
 
-	double Eabs = 100;
-	vector<double> Eabs_collection = { 50, 100, 200, 500, 1000 };
-
 	// Polyfit - 1
 	QSS.clear();
 	for (int i = 0; i < Eabs_collection.size(); i++) {
@@ -73,7 +70,7 @@ void VLDB_Final_Experiment_6_COUNT() {
 
 
 // Exp6-2 MAX: aMaxTree, Polyfit; Dataset: HKI
-void VLDB_Final_Experiment_1_MAX() {
+void VLDB_Final_Experiment_6_MAX() {
 
 	vector<double> keys, values, query_low, query_up;
 	LoadHKIDataset(keys, values);
@@ -128,33 +125,6 @@ void VLDB_Final_Experiment_1_MAX() {
 
 // Exp6-3 MAX: COUNT(2D): Polyfit; Dataset: OSM
 //void VLDB_Final_Experiment_1_COUNT2D() {
-//
-//	vector<double> keys1, keys2, query_low1, query_low2, query_up1, query_up2;
-//	LoadOSMDataset(keys1, keys2);
-//	LoadOSMQuerySet(query_low1, query_low2, query_up1, query_up2);
-//
-//	double Eabs = 100;
-//	vector<double> Eabs_collection = { 500, 1000, 2000 };
-//
-//	QueryResult QS;
-//	vector<QueryResult> QSS;
-//
-//	std::ofstream run_result;
-//	run_result.open("C:/Users/Cloud/iCloudDrive/LearnedAggregate/VLDB_Final_Experiments/RunResults/Exp6_COUNT2D.csv", std::ios::app);
-//
-//
-//	QSS.clear();
-//	// Polyfit, use its own accumulation dataset, set in its own method
-//	for (int i = 0; i < Eabs_collection.size(); i++) {
-//		Eabs = Eabs_collection[i];
-//		QS = TestPolyfit_COUNT2D(query_low1, query_low2, query_up1, query_up2, 0.01, Eabs);
-//		QSS.push_back(QS);
-//	}
-//	//store it in file
-//	for (int i = 0; i < QSS.size(); i++) {
-//		run_result << QSS[i].average_query_time << "," << QSS[i].total_query_time << "," << QSS[i].measured_absolute_error << "," << QSS[i].measured_relative_error << endl;
-//	}
-//	run_result << endl;
-//
+
 //	// the result of aggregate max tree should be a single line
 //}
