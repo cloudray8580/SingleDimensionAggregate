@@ -109,6 +109,61 @@ void LoadHKIQuerySet(vector<double> &Querykey_L, vector<double> &Querykey_U) {
 	RowvecToVector(query_x_low, Querykey_L);
 }
 
+void LoadTWEET20MDataset(vector<double> &keys, vector<double> &values) {
+	mat dataset;
+	bool loaded = mlpack::data::Load("C:/Users/Cloud/iCloudDrive/Processed20MTweetPass4_Normalized.csv", dataset);
+	arma::rowvec trainingset = dataset.row(0);
+	arma::rowvec responses = dataset.row(1);
+	RowvecToVector(trainingset, keys);
+	RowvecToVector(responses, values);
+}
+
+void LoadTWEET20MQuerySet(vector<double> &Querykey_L, vector<double> &Querykey_U) {
+	mat queryset;
+	bool loaded2 = mlpack::data::Load("C:/Users/Cloud/iCloudDrive/Processed20MTweetQuery_Normalized.csv", queryset);
+	arma::rowvec query_x_low = queryset.row(0);
+	arma::rowvec query_x_up = queryset.row(1);
+	vector<double> queryset_x_up_v, queryset_x_low_v;
+	RowvecToVector(query_x_up, Querykey_U);
+	RowvecToVector(query_x_low, Querykey_L);
+}
+
+void LoadOSM_Dataset_Queryset_1D_SUBSET(vector<double> &keys, vector<double> &values, vector<double> &q_low, vector<double> &q_up, int option=1) {
+	
+	arma::mat dataset;
+	arma::mat queryset;
+
+	switch (option){
+	case 1:
+		mlpack::data::Load("C:/Users/Cloud/Desktop/LearnedAggregateData/MapData_1M_Sorted_Value.csv", dataset);
+		mlpack::data::Load("C:/Users/Cloud/Desktop/LearnedAggregateData/MapData_1M_Query_1D.csv", queryset);
+		break;
+	case 2:
+		mlpack::data::Load("C:/Users/Cloud/Desktop/LearnedAggregateData/MapData_10M_Sorted_Value.csv", dataset);
+		mlpack::data::Load("C:/Users/Cloud/Desktop/LearnedAggregateData/MapData_10M_Query_1D.csv", queryset);
+		break;
+	case 3:
+		mlpack::data::Load("C:/Users/Cloud/Desktop/LearnedAggregateData/MapData_30M_Sorted_Value.csv", dataset);
+		mlpack::data::Load("C:/Users/Cloud/Desktop/LearnedAggregateData/MapData_30M_Query_1D.csv", queryset);
+		break;
+	case 4:
+		mlpack::data::Load("C:/Users/Cloud/Desktop/LearnedAggregateData/MapData_100M_Sorted_Value.csv", dataset);
+		mlpack::data::Load("C:/Users/Cloud/Desktop/LearnedAggregateData/MapData_100M_Query_1D.csv", queryset);
+		break;
+	default:
+		mlpack::data::Load("C:/Users/Cloud/Desktop/LearnedAggregateData/MapData_100M_Sorted_Value.csv", dataset);
+		mlpack::data::Load("C:/Users/Cloud/Desktop/LearnedAggregateData/MapData_100M_Query_1D.csv", queryset);
+		break;
+	}
+	
+	arma::rowvec key_row = dataset.row(0);
+	arma::rowvec value_row = dataset.row(dataset.n_rows - 1);
+	RowvecToVector(key_row, keys);
+	RowvecToVector(value_row, values);
+	RowvecToVector(queryset.row(0), q_low);
+	RowvecToVector(queryset.row(1), q_up);
+}
+
 void LoadOSMDataset(vector<double> &key1, vector<double> &key2) {
 	arma::mat dataset;
 	mlpack::data::Load("C:/Users/Cloud/Desktop/LearnedAggregateData/Sorted2DimTrainingSet_Long_Lat_100M.csv", dataset); // first key longitude, second key latitude
@@ -126,6 +181,48 @@ void LoadOSMQuerySet(vector<double> &d1_low, vector<double> &d2_low, vector<doub
 	RowvecToVector(queryset.row(1), d2_low);
 	RowvecToVector(queryset.row(2), d1_up);
 	RowvecToVector(queryset.row(3), d2_up);
+}
+
+// find COUNT POI (TWEET20M)
+void FindExactResultByScan_POI() {
+	mat dataset;
+	bool loaded = mlpack::data::Load("C:/Users/Cloud/iCloudDrive/Processed20MTweetPass4_Normalized.csv", dataset);
+	arma::rowvec x = dataset.row(0); // x
+	arma::rowvec y = dataset.row(1); // y
+	vector<double> x_v, y_v;
+	RowvecToVector(x, x_v);
+	RowvecToVector(y, y_v);
+
+	mat queryset;
+	bool loaded2 = mlpack::data::Load("C:/Users/Cloud/iCloudDrive/Processed20MTweetQuery_Normalized.csv", queryset);
+	arma::rowvec queryset_x_low = queryset.row(0);
+	arma::rowvec queryset_x_up = queryset.row(1);
+	vector<double> query_x_low_v, query_x_up_v;
+	RowvecToVector(queryset_x_low, query_x_low_v);
+	RowvecToVector(queryset_x_up, query_x_up_v);
+
+	vector<double> real_results;
+
+	auto t0 = chrono::steady_clock::now();
+	int count;
+	for (int i = 0; i < query_x_low_v.size(); i++) {
+		count = 0; // no nefgative records
+		for (int j = 0; j < x_v.size(); j++) {
+			if (x_v[j] >= query_x_low_v[i] && x_v[j] <= query_x_up_v[i]) {
+				count += 1;
+			}
+		}
+		real_results.push_back(count);
+	}
+	auto t1 = chrono::steady_clock::now();
+
+	// save real resutls to file
+	ofstream outfile;
+	outfile.open("C:/Users/Cloud/iCloudDrive/LearnedAggregate/VLDB_Final_Experiments/RealQueryResults/POI_COUNT.csv");
+	for (int i = 0; i < real_results.size(); i++) {
+		outfile << real_results[i] << endl;
+	}
+	outfile.close();
 }
 
 // find MAX

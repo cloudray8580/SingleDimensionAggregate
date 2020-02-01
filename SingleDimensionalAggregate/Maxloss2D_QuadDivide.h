@@ -63,7 +63,7 @@ public:
 		IloNumVarArray vars(env);
 		IloRangeArray ranges(env);
 
-		//cplex.setOut(env.getNullStream());     
+		cplex.setOut(env.getNullStream());     
 
 		cplex.setParam(IloCplex::NumericalEmphasis, CPX_ON);
 		/*cplex.setParam(IloCplex::Param::Barrier::Limits::Growth, 1e6);
@@ -82,7 +82,7 @@ public:
 		vars.add(IloNumVar(env, -INFINITY, INFINITY, ILOFLOAT)); // 5, the bias, i.e., d
 		vars.add(IloNumVar(env, 0.0, INFINITY, ILOFLOAT)); // 6, our target, the max loss
 
-		//cplex.setParam(IloCplex::RootAlg, IloCplex::Primal); // using simplex
+		cplex.setParam(IloCplex::RootAlg, IloCplex::Primal); // using simplex
 		//cplex.setParam(IloCplex::RootAlg, IloCplex::Barrier); // set optimizer used interior point method
 		//cplex.setParam(IloCplex::RootAlg, IloCplex::Sifting); // set optimizer used interior point method
 
@@ -101,7 +101,7 @@ public:
 				model.add(vars[0] * keys_v[i].first * keys_v[i].first + vars[1] * keys_v[i].first + vars[2] * keys_v[i].second * keys_v[i].second + vars[3] * keys_v[i].second + vars[4] * keys_v[i].first * keys_v[i].second + vars[5] - accumulation_v[i] >= -vars[6]);
 			}
 			else {
-				cout << "invalid point " << i << ": " << keys_v[i].first << " " << keys_v[i].second << endl;
+				//cout << "invalid point " << i << ": " << keys_v[i].first << " " << keys_v[i].second << endl;
 			}
 		}
 
@@ -109,7 +109,7 @@ public:
 		cplex.solve();
 		IloNum endtime_ = cplex.getTime();
 		
-		cplex.exportModel("C:/Users/Cloud/Desktop/2D.lp");
+		//cplex.exportModel("C:/Users/Cloud/Desktop/2D.lp");
 
 		try {
 			loss = cplex.getObjValue();
@@ -534,7 +534,7 @@ public:
 	}
 
 
-	QueryResult CountPrediction2(vector<double> &d1_low, vector<double> &d2_low, vector<double> &d1_up, vector<double> &d2_up, vector<double> &results) {
+	QueryResult CountPrediction2(vector<double> &d1_low, vector<double> &d2_low, vector<double> &d1_up, vector<double> &d2_up, vector<double> &results, bool DoRefinement = true) {
 
 		cout << "start querying.." << endl;
 
@@ -607,19 +607,20 @@ public:
 			cout << "predicted result using our models: " << result << endl;*/
 
 			// check if satisfy relative error threshold
-			max_err_rel = 4 * error_threshold / (result - 4 * error_threshold);
-			//cout << "estimate relative error: " << max_err_rel << endl;
-			if (max_err_rel > relative_error_threshold || max_err_rel < 0) {
-				count_refinement++;
-				// need to do refinement, directly use an aggregate Rtree
-				Rect query_region(d1_low[i], d2_low[i], d1_up[i], d2_up[i]);
-				cardinality = aRtree.Aggregate(query_region.min, query_region.max, leafcount);
-				//cout << "predicted result using refinement: " << cardinality << endl;
-				results.push_back(cardinality);
+			if (DoRefinement) {
+				max_err_rel = 4 * error_threshold / (result - 4 * error_threshold);
+				//cout << "estimate relative error: " << max_err_rel << endl;
+				if (max_err_rel > relative_error_threshold || max_err_rel < 0) {
+					count_refinement++;
+					// need to do refinement, directly use an aggregate Rtree
+					Rect query_region(d1_low[i], d2_low[i], d1_up[i], d2_up[i]);
+					cardinality = aRtree.Aggregate(query_region.min, query_region.max, leafcount);
+					//cout << "predicted result using refinement: " << cardinality << endl;
+					result = cardinality;
+					
+				}
 			}
-			else {
-				results.push_back(result);
-			}
+			results.push_back(result);
 
 			result_add1.clear();
 			result_add2.clear();

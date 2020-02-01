@@ -366,7 +366,7 @@ class StageModel {
 
 
 	// with refinement and absolute error threshold
-	QueryResult CountPrediction(vector<double> &queryset_low, vector<double> &queryset_up, vector<int> &results, vector<double> &key_v){
+	QueryResult CountPrediction(vector<double> &queryset_low, vector<double> &queryset_up, vector<int> &results, vector<double> &key_v, bool DoRefinement = true, string RealResultPath = "C:/Users/Cloud/iCloudDrive/LearnedAggregate/VLDB_Final_Experiments/RealQueryResults/TWEET_1D.csv"){
 		
 		// build the full key index
 		stx::btree<double, int> full_key_index;
@@ -450,17 +450,19 @@ class StageModel {
 			
 			result = upper_result - lower_result;
 
-			// check refinement condition
-			max_err_rel = (2 * error_threshold) / (result - 2 * error_threshold);
-			//cout << result_low << "  " << result_up << "  " << result << "  " << max_err_rel << endl;
-			if (max_err_rel > Trel || max_err_rel < 0) {
-				count_refinement++;
-				// do refinement
-				iter = full_key_index.find(queryset_low[k]);
-				lower_result = iter->second;
-				iter = full_key_index.find(queryset_up[k]);
-				upper_result = iter->second;
-				result = upper_result - lower_result;
+			if (DoRefinement) {
+				// check refinement condition
+				max_err_rel = (2 * error_threshold) / (result - 2 * error_threshold);
+				//cout << result_low << "  " << result_up << "  " << result << "  " << max_err_rel << endl;
+				if (max_err_rel > Trel || max_err_rel < 0) {
+					count_refinement++;
+					// do refinement
+					iter = full_key_index.find(queryset_low[k]);
+					lower_result = iter->second;
+					iter = full_key_index.find(queryset_up[k]);
+					upper_result = iter->second;
+					result = upper_result - lower_result;
+				}
 			}
 
 			results.push_back(result);
@@ -472,7 +474,7 @@ class StageModel {
 		auto total_time = chrono::duration_cast<chrono::nanoseconds>(t1 - t0).count();
 
 		double MEabs, MErel;
-		MeasureAccuracy(results, "C:/Users/Cloud/iCloudDrive/LearnedAggregate/VLDB_Final_Experiments/RealQueryResults/TWEET_1D.csv", MEabs, MErel);
+		MeasureAccuracy(results, RealResultPath, MEabs, MErel);
 
 		QueryResult query_result;
 		query_result.average_query_time = average_time;

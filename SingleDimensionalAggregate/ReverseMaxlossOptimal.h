@@ -891,7 +891,7 @@ public:
 	}
 
 	// with refinement
-	QueryResult MaxPrediction(vector<double> &queryset_low, vector<double> &queryset_up, vector<double> &results) {
+	QueryResult MaxPrediction(vector<double> &queryset_low, vector<double> &queryset_up, vector<double> &results, bool DoRefinement = true) {
 		results.clear();
 		
 		int model_index = 0;
@@ -959,17 +959,19 @@ public:
 			//cout << "result after compared with side max: " << result << endl;
 
 			// check relative error condition
-			condition = t_abs * (1 + 1 / t_rel);
-			//cout << "condition value: " << condition << endl;
-			if (result < condition) { // if result greater than the right side, it's a hit
-				count_refinement++;
-				// do refinement
-				result = aggregate_max_tree.max_query(queryset_low[i], queryset_up[i]);
-				//cout << "do refinement: " << i << " query" << endl;
-			}
+			if (DoRefinement) {
+				condition = t_abs * (1 + 1 / t_rel);
+				//cout << "condition value: " << condition << endl;
+				if (result < condition) { // if result greater than the right side, it's a hit
+					count_refinement++;
+					// do refinement
+					result = aggregate_max_tree.max_query(queryset_low[i], queryset_up[i]);
+					//cout << "do refinement: " << i << " query" << endl;
+				}
 
-			//cout << "result after compared with side max: " << result << endl;
-			//cout << "==============" << endl;
+				//cout << "result after compared with side max: " << result << endl;
+				//cout << "==============" << endl;
+			}
 			results.push_back(result);
 		}
 		auto t1 = chrono::steady_clock::now();
@@ -1140,7 +1142,7 @@ public:
 		outfile_exp.close();
 	}
 
-	QueryResult CountPrediction2(vector<double> &queryset_low, vector<double> &queryset_up, vector<int> &results, vector<double> &key_v) {
+	QueryResult CountPrediction2(vector<double> &queryset_low, vector<double> &queryset_up, vector<int> &results, vector<double> &key_v, bool DoRefinement = true, string RealResultPath = "C:/Users/Cloud/iCloudDrive/LearnedAggregate/VLDB_Final_Experiments/RealQueryResults/TWEET_1D.csv") {
 
 		// build the full key index
 		stx::btree<double, int> full_key_index;
@@ -1189,16 +1191,18 @@ public:
 			// calculate the COUNT
 			result = result_up - result_low;
 
-			// analysis estimated maximum relative error:
-			max_err_rel = (2 * t_abs) / (result - 2 * t_abs);
-			if (max_err_rel > t_rel || max_err_rel < 0) {
-				count_refinement++;
-				// do refinement
-				iter = full_key_index.find(queryset_low[i]);
-				result_low = iter->second;
-				iter = full_key_index.find(queryset_up[i]);
-				result_up = iter->second;
-				result = result_up - result_low;
+			if (DoRefinement) {
+				// analysis estimated maximum relative error:
+				max_err_rel = (2 * t_abs) / (result - 2 * t_abs);
+				if (max_err_rel > t_rel || max_err_rel < 0) {
+					count_refinement++;
+					// do refinement
+					iter = full_key_index.find(queryset_low[i]);
+					result_low = iter->second;
+					iter = full_key_index.find(queryset_up[i]);
+					result_up = iter->second;
+					result = result_up - result_low;
+				}
 			}
 
 			results.push_back(result);
@@ -1213,7 +1217,7 @@ public:
 		auto total_time = chrono::duration_cast<chrono::nanoseconds>(t1 - t0).count();
 
 		double MEabs, MErel;
-		MeasureAccuracy(results, "C:/Users/Cloud/iCloudDrive/LearnedAggregate/VLDB_Final_Experiments/RealQueryResults/TWEET_1D.csv", MEabs, MErel);
+		MeasureAccuracy(results, RealResultPath, MEabs, MErel);
 
 		QueryResult query_result;
 		query_result.average_query_time = average_time;

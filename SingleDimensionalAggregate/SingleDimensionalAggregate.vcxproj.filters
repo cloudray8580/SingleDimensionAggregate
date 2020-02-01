@@ -111,6 +111,15 @@
     <ClInclude Include="VLDBFinalExp6.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="VLDBFinalExp_scale.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="VLDBFinalExp_Easb.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="VLDBFinalExp_TWEET20M.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">

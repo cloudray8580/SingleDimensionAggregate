@@ -12,7 +12,7 @@
 //	double measured_relative_error;
 //};
 
-QueryResult TestS2Sampling1D(vector<double> &keys, vector<double> queryset_L, vector<double> queryset_U, double p = 0.9, double Trel = 0.01, double Tabs = 100) {
+QueryResult TestS2Sampling1D(vector<double> &keys, vector<double> queryset_L, vector<double> queryset_U, double p = 0.9, double Trel = 0.01, double Tabs = 100, string RealResultPath = "C:/Users/Cloud/iCloudDrive/LearnedAggregate/VLDB_Final_Experiments/RealQueryResults/TWEET_1D.csv") {
 
 	double result;
 	vector<int> predicted_results;
@@ -32,7 +32,7 @@ QueryResult TestS2Sampling1D(vector<double> &keys, vector<double> queryset_L, ve
 	double MEabs, MErel;
 
 	// check correctness
-	MeasureAccuracy(predicted_results, "C:/Users/Cloud/iCloudDrive/LearnedAggregate/VLDB_Final_Experiments/RealQueryResults/TWEET_1D.csv", MEabs, MErel);
+	MeasureAccuracy(predicted_results, RealResultPath, MEabs, MErel);
 
 	//ErrorGuaranteedSampling();
 
@@ -46,17 +46,17 @@ QueryResult TestS2Sampling1D(vector<double> &keys, vector<double> queryset_L, ve
 }
 
 
-QueryResult TestFITingTree(vector<double> &keys, vector<double> &values, vector<double> queryset_L, vector<double> queryset_U, double Trel = 0.01, double Tabs = 100) {
+QueryResult TestFITingTree(vector<double> &keys, vector<double> &values, vector<double> queryset_L, vector<double> queryset_U, double Trel = 0.01, double Tabs = 100, bool DoRefinement = true, string RealResultPath = "C:/Users/Cloud/iCloudDrive/LearnedAggregate/VLDB_Final_Experiments/RealQueryResults/TWEET_1D.csv") {
 	
 	double result;
 	vector<int> predicted_results;
 	ATree atree(Tabs, Trel);
 	atree.TrainAtree(keys, values);
-	QueryResult query_result = atree.CountPrediction2(queryset_L, queryset_U, predicted_results, keys);
+	QueryResult query_result = atree.CountPrediction2(queryset_L, queryset_U, predicted_results, keys, DoRefinement, RealResultPath);
 	return query_result;
 }
 
-QueryResult TestRMI(vector<double> &keys, vector<double> &values, vector<double> queryset_L, vector<double> queryset_U, double Trel = 0.01, double Tabs = 100) {
+QueryResult TestRMI(vector<double> &keys, vector<double> &values, vector<double> queryset_L, vector<double> queryset_U, double Trel = 0.01, double Tabs = 100, bool DoRefinement = true, string RealResultPath = "C:/Users/Cloud/iCloudDrive/LearnedAggregate/VLDB_Final_Experiments/RealQueryResults/TWEET_1D.csv") {
 	
 	mat dataset;
 	bool loaded = mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/SortedSingleDimPOIs2.csv", dataset);
@@ -74,12 +74,12 @@ QueryResult TestRMI(vector<double> &keys, vector<double> &values, vector<double>
 
 	StageModel stage_model(dataset, responses, arch, Tabs, Trel);
 	stage_model.DumpParameters();
-	QueryResult query_result = stage_model.CountPrediction(queryset_L, queryset_U, predicted_results, keys);
+	QueryResult query_result = stage_model.CountPrediction(queryset_L, queryset_U, predicted_results, keys, DoRefinement, RealResultPath);
 
 	return query_result;
 }
 
-QueryResult TestPolyfit(vector<double> &keys, vector<double> &values, vector<double> queryset_L, vector<double> queryset_U, double Trel = 0.01, double Tabs = 100, int highest_term = 1) {
+QueryResult TestPolyfit(vector<double> &keys, vector<double> &values, vector<double> queryset_L, vector<double> queryset_U, double Trel = 0.01, double Tabs = 100, int highest_term = 1, bool DoRefinement = true, string RealResultPath = "C:/Users/Cloud/iCloudDrive/LearnedAggregate/VLDB_Final_Experiments/RealQueryResults/TWEET_1D.csv") {
 	
 	double result;
 	vector<int> predicted_results;
@@ -87,11 +87,11 @@ QueryResult TestPolyfit(vector<double> &keys, vector<double> &values, vector<dou
 	ReverseMaxlossOptimal RMLO(Tabs, Trel, highest_term);
 	RMLO.SegmentOnTrainMaxLossModel(keys, values);
 	RMLO.BuildNonLeafLayerWithBtree();
-	QueryResult query_result = RMLO.CountPrediction2(queryset_L, queryset_U, predicted_results, keys);
+	QueryResult query_result = RMLO.CountPrediction2(queryset_L, queryset_U, predicted_results, keys, DoRefinement, RealResultPath);
 	return query_result;
 }
 
-QueryResult TestPolyfit_MAX(vector<double> &keys, vector<double> &values, vector<double> queryset_L, vector<double> queryset_U, double Trel = 0.01, double Tabs = 100, int highest_term = 1) {
+QueryResult TestPolyfit_MAX(vector<double> &keys, vector<double> &values, vector<double> queryset_L, vector<double> queryset_U, double Trel = 0.01, double Tabs = 100, int highest_term = 1, bool DoRefinement = true) {
 
 	double result;
 	vector<double> predicted_results;
@@ -100,7 +100,7 @@ QueryResult TestPolyfit_MAX(vector<double> &keys, vector<double> &values, vector
 	RMLO.BuildNonLeafLayerWithBtree();
 	RMLO.PrepareMaxAggregateTree(keys, values);
 	RMLO.PrepareExactAggregateMaxTree(keys, values);
-	QueryResult query_result = RMLO.MaxPrediction(queryset_L, queryset_U, predicted_results);
+	QueryResult query_result = RMLO.MaxPrediction(queryset_L, queryset_U, predicted_results, DoRefinement);
 	//RMLO.ExportDatasetRangeAndModels();
 	return query_result;
 }
@@ -139,7 +139,7 @@ QueryResult TestS2Sampling2D(vector<double> &keys1, vector<double> &keys2, vecto
 }
 
 // call when the Abs error is different
-QueryResult TestPolyfit_COUNT2D(vector<double> &key1, vector<double> &key2, vector<double> &queryset_L1, vector<double> &queryset_L2, vector<double> &queryset_U1, vector<double> &queryset_U2, double Trel = 0.01, double Tabs = 100) {
+QueryResult TestPolyfit_COUNT2D(vector<double> &key1, vector<double> &key2, vector<double> &queryset_L1, vector<double> &queryset_L2, vector<double> &queryset_U1, vector<double> &queryset_U2, double Trel = 0.01, double Tabs = 100, bool DoRefinement = true) {
 
 	double result;
 	vector<double> predicted_results;
@@ -160,13 +160,13 @@ QueryResult TestPolyfit_COUNT2D(vector<double> &key1, vector<double> &key2, vect
 	//model2d.LoadRtree();
 
 	model2d.PrepareExactAggregateRtree(key1, key2);
-	QueryResult query_result = model2d.CountPrediction2(queryset_L1, queryset_L2, queryset_U1, queryset_U2, predicted_results);
+	QueryResult query_result = model2d.CountPrediction2(queryset_L1, queryset_L2, queryset_U1, queryset_U2, predicted_results, DoRefinement);
 
 	return query_result;
 }
 
 // call when the abs error is fixed to 10000
-QueryResult TestPolyfit_COUNT2D_FIXABS(vector<double> &key1, vector<double> &key2, vector<double> &queryset_L1, vector<double> &queryset_L2, vector<double> &queryset_U1, vector<double> &queryset_U2, double Trel = 0.01, double Tabs = 100) {
+QueryResult TestPolyfit_COUNT2D_FIXABS(vector<double> &key1, vector<double> &key2, vector<double> &queryset_L1, vector<double> &queryset_L2, vector<double> &queryset_U1, vector<double> &queryset_U2, double Trel = 0.01, double Tabs = 100, bool DoRefinement = true) {
 
 	double result;
 	vector<double> predicted_results;
@@ -182,7 +182,7 @@ QueryResult TestPolyfit_COUNT2D_FIXABS(vector<double> &key1, vector<double> &key
 	model2d.ReadTrainedModelsFromFile(filename);
 	model2d.LoadRtree();
 	model2d.PrepareExactAggregateRtree(key1, key2);
-	QueryResult query_result = model2d.CountPrediction2(queryset_L1, queryset_L2, queryset_U1, queryset_U2, predicted_results);
+	QueryResult query_result = model2d.CountPrediction2(queryset_L1, queryset_L2, queryset_U1, queryset_U2, predicted_results, DoRefinement);
 
 	return query_result;
 }

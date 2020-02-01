@@ -375,7 +375,7 @@ public:
 		outfile_exp.close();*/
 	}
 
-	QueryResult CountPrediction2(vector<double> &queryset_low, vector<double> &queryset_up, vector<int> &results, vector<double> &key_v) {
+	QueryResult CountPrediction2(vector<double> &queryset_low, vector<double> &queryset_up, vector<int> &results, vector<double> &key_v, bool DoRefinement = true, string RealResultPath = "C:/Users/Cloud/iCloudDrive/LearnedAggregate/VLDB_Final_Experiments/RealQueryResults/TWEET_1D.csv") {
 
 		// build the full key index
 		stx::btree<double, int> full_key_index;
@@ -396,6 +396,8 @@ public:
 		auto t0 = chrono::steady_clock::now();
 		// for each range query pair
 		for (int i = 0; i < queryset_low.size(); i++) {
+
+			//cout << "L: " << queryset_low[i] << " U:" << queryset_up[i] << endl;
 
 			// calculate the lower key position
 			iter = this->bottom_layer_index.upper_bound(queryset_low[i]);
@@ -418,17 +420,19 @@ public:
 			// calculate the COUNT
 			result = result_up - result_low;
 
-			// analysis estimated maximum relative error:
-			max_err_rel = (2 * error_threshold) / (result - 2 * error_threshold);
-			//cout << result_low << "  " << result_up << "  " << result << "  " << max_err_rel << endl;
-			if (max_err_rel > relative_error_threshold || max_err_rel < 0) {
-				count_refinement++;
-				// do refinement
-				iter = full_key_index.find(queryset_low[i]);
-				result_low = iter->second;
-				iter = full_key_index.find(queryset_up[i]);
-				result_up = iter->second;
-				result = result_up - result_low;
+			if (DoRefinement) {
+				// analysis estimated maximum relative error:
+				max_err_rel = (2 * error_threshold) / (result - 2 * error_threshold);
+				//cout << result_low << "  " << result_up << "  " << result << "  " << max_err_rel << endl;
+				if (max_err_rel > relative_error_threshold || max_err_rel < 0) {
+					count_refinement++;
+					// do refinement
+					iter = full_key_index.find(queryset_low[i]);
+					result_low = iter->second;
+					iter = full_key_index.find(queryset_up[i]);
+					result_up = iter->second;
+					result = result_up - result_low;
+				}
 			}
 
 			results.push_back(result);
@@ -444,7 +448,7 @@ public:
 		auto total_time = chrono::duration_cast<chrono::nanoseconds>(t1 - t0).count();
 
 		double MEabs, MErel;
-		MeasureAccuracy(results, "C:/Users/Cloud/iCloudDrive/LearnedAggregate/VLDB_Final_Experiments/RealQueryResults/TWEET_1D.csv", MEabs, MErel);
+		MeasureAccuracy(results, RealResultPath, MEabs, MErel);
 
 		QueryResult query_result;
 		query_result.average_query_time = average_time;
