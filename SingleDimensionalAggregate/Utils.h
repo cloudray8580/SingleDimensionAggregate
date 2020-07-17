@@ -95,6 +95,11 @@ void LoadHKIDataset(vector<double> &keys, vector<double> &values) {
 	bool loaded = mlpack::data::Load("C:/Users/Cloud/iCloudDrive/ProcessedFinancialData.csv", dataset);
 	arma::rowvec trainingset = dataset.row(0);
 	arma::rowvec responses = dataset.row(2);
+
+	/*bool loaded = mlpack::data::Load("C:/Users/Cloud/iCloudDrive/NormalizedProcessedFinancialData.csv", dataset);
+	arma::rowvec trainingset = dataset.row(0);
+	arma::rowvec responses = dataset.row(1);*/
+
 	RowvecToVector(trainingset, keys);
 	RowvecToVector(responses, values);
 }
@@ -102,6 +107,7 @@ void LoadHKIDataset(vector<double> &keys, vector<double> &values) {
 void LoadHKIQuerySet(vector<double> &Querykey_L, vector<double> &Querykey_U) {
 	mat queryset;
 	bool loaded2 = mlpack::data::Load("C:/Users/Cloud/iCloudDrive/ProcessedFinancialQuery.csv", queryset);
+	//bool loaded2 = mlpack::data::Load("C:/Users/Cloud/iCloudDrive/NormalizedProcessedFinancialQuery.csv", queryset);
 	arma::rowvec query_x_low = queryset.row(0);
 	arma::rowvec query_x_up = queryset.row(1);
 	vector<double> queryset_x_up_v, queryset_x_low_v;

@@ -126,10 +126,25 @@ void VLDB_Final_Experiment_2_MAX() {
 	std::ofstream run_result;
 	run_result.open("C:/Users/Cloud/iCloudDrive/LearnedAggregate/VLDB_Final_Experiments/RunResults/Exp2_MAX.csv", std::ios::app);
 
-	// Polyfit
+	// Polyfit - 1
 	for (int i = 0; i < Erel_collection.size(); i++) {
 		Erel = Erel_collection[i];
 		QS = TestPolyfit_MAX(keys, values, query_low, query_up, Erel, 100, 1); // probability= 0.9, Trel = 0.01, double Tabs = 100, int highest_term
+		//QS = TestPolyfit_MAX(keys, values, query_low, query_up, Erel, 100, 2);
+		QSS.push_back(QS);
+	}
+	//store it in file
+	for (int i = 0; i < QSS.size(); i++) {
+		run_result << QSS[i].average_query_time << "," << QSS[i].total_query_time << "," << QSS[i].measured_absolute_error << "," << QSS[i].measured_relative_error << "," << QSS[i].hit_count << "," << QSS[i].model_amount << endl;
+	}
+	run_result << endl;
+	QSS.clear();
+
+	// Polyfit - 2
+	for (int i = 0; i < Erel_collection.size(); i++) {
+		Erel = Erel_collection[i];
+		//QS = TestPolyfit_MAX(keys, values, query_low, query_up, Erel, 100, 1); // probability= 0.9, Trel = 0.01, double Tabs = 100, int highest_term
+		QS = TestPolyfit_MAX(keys, values, query_low, query_up, Erel, 100, 2);
 		QSS.push_back(QS);
 	}
 	//store it in file

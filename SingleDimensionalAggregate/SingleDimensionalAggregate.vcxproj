@@ -178,6 +178,7 @@ xcopy /y "D:\mlpack3.0.4\mlpack-3.0.4\packages\OpenBLAS.0.2.14.1\lib\native\bin\
     <ClInclude Include="MethodTesting.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="ReverseMaxlossOptimal.h" />
+    <ClInclude Include="RMI_tunning.h" />
     <ClInclude Include="ROLLearnedIndex_cubic.h" />
     <ClInclude Include="ROLLearnedIndex_quadratic.h" />
     <ClInclude Include="ROLLearnedIndex_quartic.h" />

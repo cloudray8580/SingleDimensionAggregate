@@ -120,6 +120,9 @@
     <ClInclude Include="VLDBFinalExp_TWEET20M.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="RMI_tunning.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">

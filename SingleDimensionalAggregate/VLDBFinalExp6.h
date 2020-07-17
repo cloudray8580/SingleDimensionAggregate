@@ -69,7 +69,7 @@ void VLDB_Final_Experiment_6_COUNT() {
 }
 
 
-// Exp6-2 MAX: aMaxTree, Polyfit; Dataset: HKI
+// Exp6-2 MAX: aMaxTree, Polyfit; Dataset: HKI, do not do refinement!
 void VLDB_Final_Experiment_6_MAX() {
 
 	vector<double> keys, values, query_low, query_up;
@@ -77,8 +77,7 @@ void VLDB_Final_Experiment_6_MAX() {
 	LoadHKIQuerySet(query_low, query_up);
 
 	double Eabs = 100;
-	vector<double> Eabs_collection = { 50, 100, 200, 500, 1000 };
-	//vector<double> Eabs_collection = { 1000,2000 };
+	vector<double> Eabs_collection = { 50, 100, 250, 500, 1000 };
 
 	QueryResult QS;
 	vector<QueryResult> QSS;
@@ -88,37 +87,50 @@ void VLDB_Final_Experiment_6_MAX() {
 
 	// Polyfit - 1
 	for (int i = 0; i < Eabs_collection.size(); i++) {
+
+		LoadHKIDataset(keys, values);
+		LoadHKIQuerySet(query_low, query_up);
+
 		Eabs = Eabs_collection[i];
-		QS = TestPolyfit_MAX(keys, values, query_low, query_up, 0.01, Eabs, 1); // probability= 0.9, Trel = 0.01, double Tabs = 100, int highest_term
+		QS = TestPolyfit_MAX(keys, values, query_low, query_up, 0.01, Eabs, 1, false); // probability= 0.9, Trel = 0.01, double Tabs = 100, int highest_term
 		QSS.push_back(QS);
 	}
-	//store it in file
 	for (int i = 0; i < QSS.size(); i++) {
-		run_result << QSS[i].average_query_time << "," << QSS[i].total_query_time << "," << QSS[i].measured_absolute_error << "," << QSS[i].measured_relative_error << " " << QSS[i].hit_count << "," << QSS[i].model_amount << endl;
+		run_result << QSS[i].average_query_time << "," << QSS[i].total_query_time << "," << QSS[i].measured_absolute_error << "," << QSS[i].measured_relative_error << "," << QSS[i].hit_count << "," << QSS[i].model_amount << "," << QSS[i].total_paras << endl;
 	}
 	run_result << endl;
-
+	QSS.clear();
+	run_result << "--------" << endl;
 	// Polyfit - 2
 	for (int i = 0; i < Eabs_collection.size(); i++) {
+
+		LoadHKIDataset(keys, values);
+		LoadHKIQuerySet(query_low, query_up);
+
 		Eabs = Eabs_collection[i];
-		QS = TestPolyfit_MAX(keys, values, query_low, query_up, 0.01, Eabs, 2); // probability= 0.9, Trel = 0.01, double Tabs = 100, int highest_term
+		QS = TestPolyfit_MAX(keys, values, query_low, query_up, 0.01, Eabs, 2, false); // probability= 0.9, Trel = 0.01, double Tabs = 100, int highest_term
 		QSS.push_back(QS);
 	}
-	//store it in file
 	for (int i = 0; i < QSS.size(); i++) {
-		run_result << QSS[i].average_query_time << "," << QSS[i].total_query_time << "," << QSS[i].measured_absolute_error << "," << QSS[i].measured_relative_error << " " << QSS[i].hit_count << "," << QSS[i].model_amount << endl;
+		run_result << QSS[i].average_query_time << "," << QSS[i].total_query_time << "," << QSS[i].measured_absolute_error << "," << QSS[i].measured_relative_error << "," << QSS[i].hit_count << "," << QSS[i].model_amount << "," << QSS[i].total_paras << endl;
 	}
 	run_result << endl;
-
+	QSS.clear();
+	run_result << "--------" << endl;
 	// Polyfit - 3
 	for (int i = 0; i < Eabs_collection.size(); i++) {
+
+		LoadHKIDataset(keys, values);
+		LoadHKIQuerySet(query_low, query_up);
+
 		Eabs = Eabs_collection[i];
-		QS = TestPolyfit_MAX(keys, values, query_low, query_up, 0.01, Eabs, 3); // probability= 0.9, Trel = 0.01, double Tabs = 100, int highest_term
+		QS = TestPolyfit_MAX(keys, values, query_low, query_up, 0.01, Eabs, 3, false); // probability= 0.9, Trel = 0.01, double Tabs = 100, int highest_term
 		QSS.push_back(QS);
 	}
+
 	//store it in file
 	for (int i = 0; i < QSS.size(); i++) {
-		run_result << QSS[i].average_query_time << "," << QSS[i].total_query_time << "," << QSS[i].measured_absolute_error << "," << QSS[i].measured_relative_error << " " << QSS[i].hit_count << "," << QSS[i].model_amount << endl;
+		run_result << QSS[i].average_query_time << "," << QSS[i].total_query_time << "," << QSS[i].measured_absolute_error << "," << QSS[i].measured_relative_error << "," << QSS[i].hit_count << "," << QSS[i].model_amount << "," << QSS[i].total_paras << endl;
 	}
 	run_result << endl;
 }

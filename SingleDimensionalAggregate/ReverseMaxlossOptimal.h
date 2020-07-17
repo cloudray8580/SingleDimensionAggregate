@@ -245,9 +245,10 @@ public:
 
 		env.setOut(env.getNullStream());
 		cplex.setOut(env.getNullStream());
+
 		//cplex.setParam(IloCplex::MIPInterval, 1000);
 
-		cplex.setParam(IloCplex::NumericalEmphasis, CPX_ON);
+		//cplex.setParam(IloCplex::NumericalEmphasis, CPX_ON);
 		//cplex.setParam(IloCplex::Param::Advance, 0); // turnoff advanced start
 		//cplex.setParam(IloCplex::Param::Preprocessing::Presolve, false); // turnoff presolve
 
@@ -613,6 +614,7 @@ public:
 					SketchFiting(key_v, position_v, origin_index, shift_index, model, current_absolute_accuracy);
 				}
 				//cout << "current max error: " << current_absolute_accuracy << endl;
+				//cout << "current origin_index: " << origin_index << " current_shift_index: " << shift_index << endl;
 			}
 
 			// 3. segment binary search (BETWEEN origin_index + Co/2 and origin_index + Co)
@@ -891,6 +893,7 @@ public:
 	}
 
 	// with refinement
+	// currently support only degree 1, 2 and 3
 	QueryResult MaxPrediction(vector<double> &queryset_low, vector<double> &queryset_up, vector<double> &results, bool DoRefinement = true) {
 		results.clear();
 		
@@ -901,81 +904,258 @@ public:
 
 		auto t0 = chrono::steady_clock::now();
 
+		// for highest_term = 1
 		double max_lower, max_upper, side_max;
 		double left_boundary, right_boundary;
+
+		// for highest_term = 2
+		double lower_left_boundary, lower_right_boundary, upper_left_boundary, upper_right_boundary;
+		double left_boundary_value, right_boundary_value;
+		double deriv_zero_pos, deriv_zero_pos_val;
+
+		// for highest_term = 3
+		double deriv_zero_pos_1, deriv_zero_pos_2, deriv_zero_pos_val_1, deriv_zero_pos_val_2;
 
 		double condition; // for realtive error condition checking
 		int count_refinement = 0;
 
 		// for each range query pair
-		for (int i = 0; i < queryset_low.size(); i++) {
 
-			/*if (i == 4) {
-				cout << "here" << endl;
-			}*/
+		if (this->highest_term == 1) {
+			for (int i = 0; i < queryset_low.size(); i++) {
 
-			// handle left boundary, this part could be actually embed into the tree, and hence the time for a traverse with tree height n-1 could be deducted
-			iter = this->bottom_layer_index.upper_bound(queryset_low[i]);
-			iter--;
-			model_index = iter->second;
-			//cout << "left model: " << model_index << endl;
-			left_boundary = dataset_range[model_index].second;
-			if (slopes[model_index] > 0) {
-				// prediction at right boundary
-				max_lower = dataset_range[model_index].second * model_parameters[model_index][1] + model_parameters[model_index][0];
-			}
-			else {
-				// prediction at query key
-				max_lower = queryset_low[i] * model_parameters[model_index][1] + model_parameters[model_index][0];
-			}
+				/*if (i == 4) {
+					cout << "here" << endl;
+				}*/
 
-			// handle right boundary, this part could be actually embed into the tree, and hence the time for a traverse with tree height n-1 could be deducted
-			iter = this->bottom_layer_index.upper_bound(queryset_up[i]);
-			iter--;
-			model_index = iter->second;
-			//cout << "right model: " << model_index << endl;
-			right_boundary = dataset_range[model_index].first;
-			if (slopes[model_index] > 0) {
-				// prediction at query key
-				max_upper = queryset_up[i] * model_parameters[model_index][1] + model_parameters[model_index][0];
-			}
-			else {
-				// prediction at left boundary
-				max_upper = dataset_range[model_index].first * model_parameters[model_index][1] + model_parameters[model_index][0];
-			}
-			
-			side_max = max_lower > max_upper ? max_lower : max_upper;
-
-			// handle middle
-			result = bottom_layer_index.our_max_query(left_boundary, right_boundary); // such that the query do not handle both sides
-
-			//cout << "max left boundary: " << max_lower << endl;
-			//cout << "max right boundary: " << max_upper << endl;
-			//cout << "side max: " << side_max << endl;
-			//cout << "inner max: " << result << endl;
-
-			result = side_max > result ? side_max : result;
-
-			//cout << "result after compared with side max: " << result << endl;
-
-			// check relative error condition
-			if (DoRefinement) {
-				condition = t_abs * (1 + 1 / t_rel);
-				//cout << "condition value: " << condition << endl;
-				if (result < condition) { // if result greater than the right side, it's a hit
-					count_refinement++;
-					// do refinement
-					result = aggregate_max_tree.max_query(queryset_low[i], queryset_up[i]);
-					//cout << "do refinement: " << i << " query" << endl;
+				// handle left boundary, this part could be actually embed into the tree, and hence the time for a traverse with tree height n-1 could be deducted
+				iter = this->bottom_layer_index.upper_bound(queryset_low[i]);
+				iter--;
+				model_index = iter->second;
+				//cout << "left model: " << model_index << endl;
+				left_boundary = dataset_range[model_index].second;
+				if (slopes[model_index] > 0) {
+					// prediction at right boundary
+					max_lower = dataset_range[model_index].second * model_parameters[model_index][1] + model_parameters[model_index][0];
+				}
+				else {
+					// prediction at query key
+					max_lower = queryset_low[i] * model_parameters[model_index][1] + model_parameters[model_index][0];
 				}
 
-				//cout << "result after compared with side max: " << result << endl;
-				//cout << "==============" << endl;
-			}
-			results.push_back(result);
-		}
-		auto t1 = chrono::steady_clock::now();
+				// handle right boundary, this part could be actually embed into the tree, and hence the time for a traverse with tree height n-1 could be deducted
+				iter = this->bottom_layer_index.upper_bound(queryset_up[i]);
+				iter--;
+				model_index = iter->second;
+				//cout << "right model: " << model_index << endl;
+				right_boundary = dataset_range[model_index].first;
+				if (slopes[model_index] > 0) {
+					// prediction at query key
+					max_upper = queryset_up[i] * model_parameters[model_index][1] + model_parameters[model_index][0];
+				}
+				else {
+					// prediction at left boundary
+					max_upper = dataset_range[model_index].first * model_parameters[model_index][1] + model_parameters[model_index][0];
+				}
 
+				// =======================================================================
+
+				side_max = max_lower > max_upper ? max_lower : max_upper;
+
+				// handle middle
+				result = bottom_layer_index.our_max_query(left_boundary, right_boundary); // such that the query do not handle both sides
+
+				//cout << "max left boundary: " << max_lower << endl;
+				//cout << "max right boundary: " << max_upper << endl;
+				//cout << "side max: " << side_max << endl;
+				//cout << "inner max: " << result << endl;
+
+				result = side_max > result ? side_max : result;
+
+				//cout << "result after compared with side max: " << result << endl;
+
+				// check relative error condition
+				if (DoRefinement) {
+					condition = t_abs * (1 + 1 / t_rel);
+					//cout << "condition value: " << condition << endl;
+					if (result < condition) { // if result greater than the right side, it's a hit
+						count_refinement++;
+						// do refinement
+						result = aggregate_max_tree.max_query(queryset_low[i], queryset_up[i]);
+						//cout << "do refinement: " << i << " query" << endl;
+					}
+
+					//cout << "result after compared with side max: " << result << endl;
+					//cout << "==============" << endl;
+				}
+				results.push_back(result);
+			}
+		}
+		else if (this->highest_term == 2) {
+			for (int i = 0; i < queryset_low.size(); i++) {
+
+				// handle left boundary, this part could be actually embed into the tree, and hence the time for a traverse with tree height n-1 could be deducted
+				iter = this->bottom_layer_index.upper_bound(queryset_low[i]);
+				iter--;
+				model_index = iter->second;
+				//cout << "left model: " << model_index << endl;
+				lower_left_boundary = dataset_range[model_index].first;
+				lower_right_boundary = dataset_range[model_index].second; // this right_boundary is for the lower segment's right
+
+				left_boundary_value = model_parameters[model_index][2]*lower_left_boundary*lower_left_boundary + model_parameters[model_index][1]* lower_left_boundary + model_parameters[model_index][0]; // ax^2 + bx + c
+				right_boundary_value = model_parameters[model_index][2]*lower_right_boundary*lower_right_boundary + model_parameters[model_index][1] * lower_right_boundary + model_parameters[model_index][0]; // ax^2 + bx + c
+
+				max_lower = max(left_boundary_value, right_boundary_value);
+				deriv_zero_pos = -0.5*model_parameters[model_index][1] / model_parameters[model_index][2];  // -b/2a
+				// check if the local maximum/minimum position is within the segment's range
+				if (deriv_zero_pos >= left_boundary && deriv_zero_pos <= right_boundary) {
+					// so for the right bound of lower, should we use the one without iter-- ?
+					deriv_zero_pos_val = model_parameters[model_index][2] * deriv_zero_pos*deriv_zero_pos + model_parameters[model_index][1] * deriv_zero_pos + model_parameters[model_index][0];
+					max_lower = max(max_lower, deriv_zero_pos_val);
+				}
+
+
+				// handle right boundary, this part could be actually embed into the tree, and hence the time for a traverse with tree height n-1 could be deducted
+				iter = this->bottom_layer_index.upper_bound(queryset_up[i]);
+				iter--;
+				model_index = iter->second;
+				//cout << "right model: " << model_index << endl;
+				upper_left_boundary = dataset_range[model_index].first;
+				upper_right_boundary = dataset_range[model_index].second; // this right_boundary is for the lower segment's right
+
+				left_boundary_value = model_parameters[model_index][2] * upper_left_boundary*upper_left_boundary + model_parameters[model_index][1] * upper_left_boundary + model_parameters[model_index][0]; // ax^2 + bx + c
+				right_boundary_value = model_parameters[model_index][2] * upper_right_boundary*upper_right_boundary + model_parameters[model_index][1] * upper_right_boundary + model_parameters[model_index][0]; // ax^2 + bx + c
+
+				max_upper = max(left_boundary_value, right_boundary_value);
+				deriv_zero_pos = -0.5*model_parameters[model_index][1] / model_parameters[model_index][2];  // -b/2a
+				// check if the local maximum/minimum position is within the segment's range
+				if (deriv_zero_pos >= left_boundary && deriv_zero_pos <= right_boundary) {
+					// so for the right bound of lower, should we use the one without iter-- ?
+					deriv_zero_pos_val = model_parameters[model_index][2] * deriv_zero_pos*deriv_zero_pos + model_parameters[model_index][1] * deriv_zero_pos + model_parameters[model_index][0];
+					max_upper = max(max_upper, deriv_zero_pos_val);
+				}
+
+				// =======================================================================
+
+				side_max = max_lower > max_upper ? max_lower : max_upper;
+				// handle middle
+				result = bottom_layer_index.our_max_query(left_boundary, right_boundary); // such that the query do not handle both sides
+				result = side_max > result ? side_max : result;
+
+				//cout << "result after compared with side max: " << result << endl;
+				// check relative error condition
+				if (DoRefinement) {
+					condition = t_abs * (1 + 1 / t_rel);
+					//cout << "condition value: " << condition << endl;
+					if (result < condition) { // if result greater than the right side, it's a hit
+						count_refinement++;
+						// do refinement
+						result = aggregate_max_tree.max_query(queryset_low[i], queryset_up[i]);
+						//cout << "do refinement: " << i << " query" << endl;
+					}
+					//cout << "result after compared with side max: " << result << endl;
+					//cout << "==============" << endl;
+				}
+				results.push_back(result);
+			}
+		}
+		else if (this->highest_term == 3) {
+			double a, b, c, d;
+			for (int i = 0; i < queryset_low.size(); i++) {
+
+				// handle left boundary, this part could be actually embed into the tree, and hence the time for a traverse with tree height n-1 could be deducted
+				iter = this->bottom_layer_index.upper_bound(queryset_low[i]);
+				iter--;
+				model_index = iter->second;
+				//cout << "left model: " << model_index << endl;
+				lower_left_boundary = dataset_range[model_index].first;
+				lower_right_boundary = dataset_range[model_index].second; // this right_boundary is for the lower segment's right
+				// ax^3 + bx^2 + cx +d
+				left_boundary_value = model_parameters[model_index][3]*lower_left_boundary*lower_left_boundary*lower_left_boundary + model_parameters[model_index][2]* lower_left_boundary*lower_left_boundary + model_parameters[model_index][1]* lower_left_boundary + model_parameters[model_index][0]; 
+				right_boundary_value = model_parameters[model_index][3]* lower_right_boundary*lower_right_boundary*lower_right_boundary + model_parameters[model_index][2]*lower_right_boundary*lower_right_boundary + model_parameters[model_index][1] * lower_right_boundary + model_parameters[model_index][0];  
+
+				max_lower = max(left_boundary_value, right_boundary_value);
+
+				a = model_parameters[model_index][3];
+				b = model_parameters[model_index][2];
+				c = model_parameters[model_index][1];
+				d = model_parameters[model_index][0];
+
+				deriv_zero_pos_1 = (-b + sqrt(b*b - 4*a*c))/(2*a); // -b + sqrt(b^2-4ac)/2a
+				deriv_zero_pos_2 = (-b - sqrt(b*b - 4*a*c))/(2*a); // -b - sqrt(b^2-4ac)/2a
+
+				// check if the local maximum/minimum position is within the segment's range
+				if (deriv_zero_pos_1 >= left_boundary && deriv_zero_pos_1 <= right_boundary) {
+					// so for the right bound of lower, should we use the one without iter-- ?
+					deriv_zero_pos_val_1 = a * deriv_zero_pos_1*deriv_zero_pos_1*deriv_zero_pos_1 + b * deriv_zero_pos_1*deriv_zero_pos_1 + c* deriv_zero_pos_1 + d;
+					max_lower = max(max_lower, deriv_zero_pos_val_1);
+				}
+				if (deriv_zero_pos_2 >= left_boundary && deriv_zero_pos_2 <= right_boundary) {
+					// so for the right bound of lower, should we use the one without iter-- ?
+					deriv_zero_pos_val_2 = a * deriv_zero_pos_2*deriv_zero_pos_2*deriv_zero_pos_2 + b * deriv_zero_pos_2*deriv_zero_pos_2 + c * deriv_zero_pos_2 + d;
+					max_lower = max(max_lower, deriv_zero_pos_val_2);
+				}
+
+
+				// handle right boundary, this part could be actually embed into the tree, and hence the time for a traverse with tree height n-1 could be deducted
+				iter = this->bottom_layer_index.upper_bound(queryset_up[i]);
+				iter--;
+				model_index = iter->second;
+				//cout << "left model: " << model_index << endl;
+				lower_left_boundary = dataset_range[model_index].first;
+				lower_right_boundary = dataset_range[model_index].second; // this right_boundary is for the lower segment's right
+				// ax^3 + bx^2 + cx +d
+				left_boundary_value = model_parameters[model_index][3] * upper_left_boundary*upper_left_boundary*upper_left_boundary + model_parameters[model_index][2] * upper_left_boundary*upper_left_boundary + model_parameters[model_index][1] * upper_left_boundary + model_parameters[model_index][0];
+				right_boundary_value = model_parameters[model_index][3] * upper_right_boundary*upper_right_boundary*upper_right_boundary + model_parameters[model_index][2] * upper_right_boundary*upper_right_boundary + model_parameters[model_index][1] * upper_right_boundary + model_parameters[model_index][0];
+
+				max_lower = max(left_boundary_value, right_boundary_value);
+
+				a = model_parameters[model_index][3];
+				b = model_parameters[model_index][2];
+				c = model_parameters[model_index][1];
+				d = model_parameters[model_index][0];
+
+				deriv_zero_pos_1 = (-b + sqrt(b*b - 4 * a*c)) / (2 * a); // -b + sqrt(b^2-4ac)/2a
+				deriv_zero_pos_2 = (-b - sqrt(b*b - 4 * a*c)) / (2 * a); // -b - sqrt(b^2-4ac)/2a
+
+				// check if the local maximum/minimum position is within the segment's range
+				if (deriv_zero_pos_1 >= left_boundary && deriv_zero_pos_1 <= right_boundary) {
+					// so for the right bound of lower, should we use the one without iter-- ?
+					deriv_zero_pos_val_1 = a * deriv_zero_pos_1*deriv_zero_pos_1*deriv_zero_pos_1 + b * deriv_zero_pos_1*deriv_zero_pos_1 + c * deriv_zero_pos_1 + d;
+					max_lower = max(max_lower, deriv_zero_pos_val_1);
+				}
+				if (deriv_zero_pos_2 >= left_boundary && deriv_zero_pos_2 <= right_boundary) {
+					// so for the right bound of lower, should we use the one without iter-- ?
+					deriv_zero_pos_val_2 = a * deriv_zero_pos_2*deriv_zero_pos_2*deriv_zero_pos_2 + b * deriv_zero_pos_2*deriv_zero_pos_2 + c * deriv_zero_pos_2 + d;
+					max_lower = max(max_lower, deriv_zero_pos_val_2);
+				}
+
+				// =======================================================================
+
+				side_max = max_lower > max_upper ? max_lower : max_upper;
+				// handle middle
+				result = bottom_layer_index.our_max_query(left_boundary, right_boundary); // such that the query do not handle both sides
+				result = side_max > result ? side_max : result;
+
+				//cout << "result after compared with side max: " << result << endl;
+				// check relative error condition
+				if (DoRefinement) {
+					condition = t_abs * (1 + 1 / t_rel);
+					//cout << "condition value: " << condition << endl;
+					if (result < condition) { // if result greater than the right side, it's a hit
+						count_refinement++;
+						// do refinement
+						result = aggregate_max_tree.max_query(queryset_low[i], queryset_up[i]);
+						//cout << "do refinement: " << i << " query" << endl;
+					}
+					//cout << "result after compared with side max: " << result << endl;
+					//cout << "==============" << endl;
+				}
+				results.push_back(result);
+			}
+		}
+		
+		auto t1 = chrono::steady_clock::now();
 		auto average_time = chrono::duration_cast<chrono::nanoseconds>(t1 - t0).count() / queryset_low.size();
 		auto total_time = chrono::duration_cast<chrono::nanoseconds>(t1 - t0).count();
 

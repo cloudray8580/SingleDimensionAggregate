@@ -22,6 +22,32 @@
 
 using namespace std;
 
+void FangTopic() {
+	mat dataset;
+	//bool loaded = mlpack::data::Load("C:/Users/Cloud/iCloudDrive/FANG_TOPIC/OneDrive_2020-07-13/processed/1211.csv", dataset);
+	//bool loaded = mlpack::data::Load("C:/Users/Cloud/iCloudDrive/FANG_TOPIC/OneDrive_2020-07-13/processed/14634.csv", dataset);
+	bool loaded = mlpack::data::Load("C:/Users/Cloud/iCloudDrive/FANG_TOPIC/OneDrive_2020-07-13/processed/107475.csv", dataset);
+	//bool loaded = mlpack::data::Load("C:/Users/Cloud/iCloudDrive/FANG_TOPIC/OneDrive_2020-07-13/processed/2080575.csv", dataset);
+
+	arma::rowvec trainingset = dataset.row(0);
+	arma::rowvec responses = dataset.row(dataset.n_rows - 1);
+
+	vector<double> key_v, position_v;
+	RowvecToVector(trainingset, key_v);
+	RowvecToVector(responses, position_v);
+
+	double Tabs = 10;
+	double Trel = 0.01;
+	int highest_term = 2;
+
+	ReverseMaxlossOptimal RMLO(Tabs, Trel, highest_term);
+	RMLO.SegmentOnTrainMaxLossModel(key_v, position_v);
+	RMLO.BuildNonLeafLayerWithBtree();
+
+	cout << "number of models: " << RMLO.index_range.size() << endl;
+	cout << "number of models: " << RMLO.model_parameters.size() << endl;
+}
+
 void Approximate2D() {
 	Maxloss2D_QuadDivide model2d(1000, 0.01, -180.0, 180.0, -90.0, 90.0);
 	double a2, a1, b2, b1, c, d, loss;
@@ -971,7 +997,9 @@ void TestLPHighestTerm() {
 	vector<double> paras;
 	
 	mat dataset;
-	bool loaded = mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/SortedSingleDimPOIs2.csv", dataset);
+	//bool loaded = mlpack::data::Load("C:/Users/Cloud/Desktop/LearnIndex/data/SortedSingleDimPOIs2.csv", dataset);
+	//bool loaded = mlpack::data::Load("C:/Users/Cloud/iCloudDrive/LearnedAggregate/sampleGS.csv", dataset);
+	//bool loaded = mlpack::data::Load("C:/Users/Cloud/iCloudDrive/FANG_TOPIC/OneDrive_2020-07-13/processed/1211.csv", dataset);
 	arma::rowvec trainingset = dataset.row(0);
 	arma::rowvec responses = dataset.row(dataset.n_rows - 1);
 
@@ -979,18 +1007,18 @@ void TestLPHighestTerm() {
 	RowvecToVector(trainingset, key_v);
 	RowvecToVector(responses, position_v);
 
-	ReverseMaxlossOptimal RMLO(100, 0.01, 1);
-	//RMLO.SolveMaxlossLP(key_v, position_v, 628762, 632418, paras, loss);
+	ReverseMaxlossOptimal RMLO(10, 0.01, 2);
+	RMLO.SolveMaxlossLP(key_v, position_v, 0, 10, paras, loss); // 0-14 and 0-22
 	//RMLO.SolveMaxlossLP(key_v, position_v, 1084084, 1089591, paras, loss);
 
-	/*cout.precision(11);
+	cout.precision(11);
 	cout << "max loss: " << loss << endl;
 	for (int i = 0; i < paras.size(); i++) {
 		cout << paras[i] << " ";
 	}
 
 	cout << endl;
-	cout <<"============================="<< endl;*/
+	cout <<"============================="<< endl;
 
 	//ROLLearnedIndex_cubic learnedindex(9, 1000, 100);
 	//double a, b, c, d, e;
